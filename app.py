@@ -34,13 +34,14 @@ except Exception:
 if not MY_GROQ_KEY:
     MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
 
-# --- 🎯 غیر ملکی حروف ہٹانے کا فنکشن ---
+# --- 🎯 غیر ملکی اور فضول حروف مکمل ہٹانے کا فنکشن ---
 def remove_foreign_characters(text):
     if not text:
         return ""
+    # چینی، ہندی، اور دیگر غیر متعلقہ غیر ملکی سیمبلز کو ہٹانا
     pattern = r'[\u4e00-\u9fff\u3400-\u4dbf\u0900-\u097f]+'
     cleaned_text = re.sub(pattern, '', text)
-    return cleaned_text
+    return cleaned_text.strip()
 
 # --- 📄 PDF اور TXT فائل سے ٹیکسٹ نکالنے کا فنکشن ---
 def extract_text_from_file(uploaded_file):
@@ -70,7 +71,7 @@ def generate_urdu_audio(text):
     except Exception as e:
         return None
 
-# --- 4. سیشن سٹیٹ (Session State) فار ہسٹری اینڈ سمپلیفیکیشن ---
+# --- 4. سیشن سٹیٹ (Session State) ---
 if "last_answer" not in st.session_state:
     st.session_state.last_answer = None
 
@@ -105,10 +106,11 @@ with st.sidebar:
     st.subheader("🛠️ بنیادی فیچرز")
     st.markdown("""
     1. **پی ڈی ایف و ٹیکسٹ فائل پروسیسنگ** 📄
-    2. **اردو آواز سے سننا (Text-to-Speech)** 🔊
-    3. **تکنیکی الفاظ کی لغت (Vocabulary)** 🔤
-    4. **امتحانی سوالات جنریٹر** ❓
-    5. **آسان اردو میں تبدیلی بٹن** ⚡
+    2. **سخت مضمون کی تصدیق (Subject Validation)** 🛑
+    3. **اردو آواز سے سننا (Text-to-Speech)** 🔊
+    4. **تکنیکی الفاظ کی لغت (Vocabulary)** 🔤
+    5. **امتحانی سوالات جنریٹر** ❓
+    6. **آسان اردو میں تبدیلی بٹن** ⚡
     """)
     st.divider()
     
@@ -123,22 +125,29 @@ with st.sidebar:
     st.write("👤 **ڈویلپر:** ارسلان (Arsalan)")
     st.write("🎓 AI & Software Development")
 
-# --- dynamic SYSTEM PROMPT بناء ---
+# --- dynamic SYSTEM PROMPT (سخت ترین ہدایات کے ساتھ) ---
 SYSTEM_PROMPT = f"""
-تمہارا نام 'EduGuide AI' ہے۔ تم پاکستان کے طلباء کے لیے ایک سمارٹ AI تعلیمی معاون ہو۔
+تمہارا نام 'EduGuide AI' ہے۔ تم پاکستان کے طلباء کے لیے ایک انتہائی محتاط اور سمارٹ AI تعلیمی معاون ہو۔
 یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
 
-موجودہ سیشن کی ترجیحات:
-- **مضمون (Subject):** {selected_subject}
-- **تعلیمی سطح (Level):** {selected_level}
+موجودہ سیشن کا منتخب کردہ مضمون: "{selected_subject}"
+موجودہ سیشن کا منتخب کردہ تعلیمی لیول: "{selected_level}"
 
-سخت ترین تحریری قواعد:
-1. تمام جوابات صرف اور صرف خالص اور سلیس **اردو رسم الخط** (Urdu Script) میں ہونے چاہئیں۔
-2. چینی یا کسی دوسری غیر متعلقہ زبان کے حروف استعمال کرنا بالکل منع ہے۔
-3. اگر صارف انگریزی میں سوال پوچھے، تب بھی جواب **100% سلیس اور عام فہم اردو** میں ہی دینا ہے۔
-4. کوئز (MCQs) کی صورت میں 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
-5. **تکنیکی الفاظ کا جدول (Vocabulary Table):** ہر جواب کے آخر میں متن میں آنے والے 3 سے 5 اہم تکنیکی الفاظ (English Terms) اور ان کے اردو معانی کا ایک الگ سیکشن "🔤 اہم تکنیکی الفاظ (Glossary)" کی ہیڈنگ کے ساتھ لازمی بنائیں۔
-6. خوبصورت Markdown ہیڈنگز اور بلٹ پوائنٹس استعمال کریں۔
+🛑 **سخت ترین مضمون کی وریفیکیشن کے قواعد (STRICT SUBJECT MATCH RULE):**
+1. اگر منتخب کردہ مضمون 'عمومی / دیگر (General)' کے علاوہ کوئی مخصوص مضمون ہے (مثلاً فزکس، کیمسٹری، کمپیوٹر سائنس، بائیولوجی، ریاضی وغیرہ)، تو سب سے پہلے صارف کے دیے گئے متن/سوال کی جانچ کرو۔
+2. اگر صارف کا سوال چنے گئے مضمون سے تعلق **نہیں** رکھتا (مثال کے طور پر ڈراپ ڈاؤن میں '{selected_subject}' منتخب ہے لیکن سوال کسی دوسرے مضمون جیسے کمپیوٹر، کیمسٹری، یا جنرل باتوں کا ہے)، تو تم **ہرگز سوال کا جواب نہیں دو گے**۔
+3. عدم مطابقت (Mismatch) کی صورت میں تم صرف اور صرف یہ معذرت خواہی کا پیغام دو گے:
+   "⚠️ **مضمون میں عدم مطابقت (Subject Mismatch)!**
+   آپ نے سائڈ بار میں ڈراپ ڈاؤن سے '**{selected_subject}**' منتخب کیا ہے، جبکہ آپ کا سوال کسی اور مضمون سے متعلق محسوس ہو رہا ہے۔ 
+   براہِ کرم سائڈ بار سے صحیح مضمون (مثلاً کمپیوٹر، فزکس، کیمسٹری وغیرہ) منتخب کریں تاکہ آپ کو درست اور صحیح تعلیمی جواب فراہم کیا جا سکے۔"
+
+📜 **سخت ترین تحریری و زبان کے قواعد (STRICT LANGUAGE RULES):**
+1. تمام جوابات **صرف اور صرف خالص اور سلیس اردو رسم الخط (Urdu Script)** میں ہونے چاہئیں۔
+2. چینی، ہندی، جاپانی یا کسی بھی غیر متعلقہ غیر ملکی زبان کے حروف کا استعمال سخت منع اور گناہِ کبیرہ ہے۔
+3. جواب میں کوئی اضافی، فضول یا غیر متعلقہ جملے شامل نہ کرو۔ صرف اور صرف مطلوبہ تعلیمی مواد دو۔
+4. اگر سوال چنے گئے مضمون سے مطابقت رکھتا ہو:
+   - کوئز (MCQs) کی صورت میں 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
+   - ہر صحیح جواب کے آخر میں 3 سے 5 اہم تکنیکی انگریزی الفاظ اور ان کا اردو ترجمہ **"🔤 اہم تکنیکی الفاظ (Glossary)"** کی ہیڈنگ کے ساتھ لازمی بنائیں۔
 """
 
 # --- مین انٹرفیس ---
@@ -224,19 +233,20 @@ if st.session_state.last_answer:
     st.subheader("📋 EduGuide AI Urdu کا جواب:")
     st.markdown(st.session_state.last_answer)
     
-    # ⚡ فیچر: آسان زبان میں تبدیل کرنے کا بٹن
-    st.divider()
-    simp_col1, simp_col2 = st.columns([2, 1])
-    with simp_col1:
-        st.info("کیا یہ جواب تھوڑا مشکل محسوس ہو رہا ہے؟")
-    with simp_col2:
-        if st.button("🔄 اسے اور آسان اردو میں سمجھائیں", use_container_width=True):
-            simplify_prompt = f"برائے مہربانی نیچے دیے گئے جواب کو انتہائی سادہ، بچوں جیسی عام فہم اردو اور روزمرہ کی آسان مثالوں میں دوبارہ لکھیں تاکہ چھوٹی کلاس کا طالب علم بھی آسانی سے سمجھ سکے:\n\n{st.session_state.last_answer}"
-            with st.spinner('جواب کو مزید آسان اردو میں تبدیل کیا جا رہا ہے...'):
-                simplified_ans = fetch_ai_response(simplify_prompt)
-                if simplified_ans:
-                    st.session_state.last_answer = simplified_ans
-                    st.rerun()
+    # اگر عدم مطابقت کا پیغام نہ ہو صرف تب آسان کرنے کا بٹن دکھائیں
+    if "مضمون میں عدم مطابقت" not in st.session_state.last_answer:
+        st.divider()
+        simp_col1, simp_col2 = st.columns([2, 1])
+        with simp_col1:
+            st.info("کیا یہ جواب تھوڑا مشکل محسوس ہو رہا ہے؟")
+        with simp_col2:
+            if st.button("🔄 اسے اور آسان اردو میں سمجھائیں", use_container_width=True):
+                simplify_prompt = f"برائے مہربانی نیچے دیے گئے جواب کو انتہائی سادہ، بچوں جیسی عام فہم اردو اور روزمرہ کی آسان مثالوں میں دوبارہ لکھیں تاکہ چھوٹی کلاس کا طالب علم بھی آسانی سے سمجھ سکے:\n\n{st.session_state.last_answer}"
+                with st.spinner('جواب کو مزید آسان اردو میں تبدیل کیا جا رہا ہے...'):
+                    simplified_ans = fetch_ai_response(simplify_prompt)
+                    if simplified_ans:
+                        st.session_state.last_answer = simplified_ans
+                        st.rerun()
 
     # --- 🚀 اضافی ٹولز (Audio, Download, Copy) ---
     st.divider()
