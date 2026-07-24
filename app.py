@@ -70,31 +70,45 @@ def generate_urdu_audio(text):
     except Exception as e:
         return None
 
-# --- 4. سخت ترین لسانی پرامپٹ ---
-SYSTEM_PROMPT = """
-تمہارا نام 'EduGuide AI' ہے۔ تم پاکستان کے طلباء کے لیے ایک سمارٹ AI تعلیمی معاون ہو۔
-یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
+# --- 4. سیشن سٹیٹ (Session State) فار ہسٹری اینڈ سمپلیفیکیشن ---
+if "last_answer" not in st.session_state:
+    st.session_state.last_answer = None
 
-سخت ترین تحریری قواعد:
-1. تمام جوابات صرف اور صرف خالص اور سلیس **اردو رسم الخط** (Urdu Script) میں ہونے چاہئیں۔
-2. چینی یا کسی دوسری غیر متعلقہ زبان کے حروف استعمال کرنا بالکل منع ہے۔
-3. اگر صارف انگریزی میں سوال پوچھے، تب بھی جواب **100% سلیس اور عام فہم اردو** میں ہی دینا ہے۔
-4. کوئز (MCQs) کی صورت میں 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
-5. خوبصورت Markdown ہیڈنگز اور بلٹ پوائنٹس استعمال کریں۔
-"""
-
-# --- سائڈ بار ---
+# --- سائڈ بار (Sidebar) ---
 with st.sidebar:
     st.title("🚀 EduGuide AI Urdu")
     st.caption("Urdu Learning & Assessment Assistant")
     st.divider()
     
+    st.subheader("🎯 1️⃣ مضمون کا انتخاب (Subject)")
+    selected_subject = st.selectbox(
+        "اپنا متعلقہ مضمون منتخب کریں:",
+        [
+            "عمومی / دیگر (General)",
+            "💻 کمپیوٹر سائنس / آئی ٹی",
+            "⚛️ فزکس (Physics)",
+            "🧪 کیمسٹری (Chemistry)",
+            "🧬 بائیولوجی (Biology)",
+            "📐 ریاضی (Mathematics)",
+            "📜 تاریخ / مطالعہ پاکستان / معلومات عامہ"
+        ]
+    )
+    
+    st.subheader("📊 2️⃣ سطح کا انتخاب (Difficulty)")
+    selected_level = st.select_slider(
+        "لیول منتخب کریں:",
+        options=["ابتدائی (Primary/Middle)", "میٹرک / انٹرمیڈیٹ (High School)", "یونیورسٹی / ایڈوانسڈ (Undergrad)"],
+        value="میٹرک / انٹرمیڈیٹ (High School)"
+    )
+    
+    st.divider()
     st.subheader("🛠️ بنیادی فیچرز")
     st.markdown("""
-    1. **مفاہیم کی اردو وضاحت** 📚
-    2. **تعلیمی تحریر کا خلاصہ (Summarizer)** 📝
-    3. **خودکار اردو MCQ ٹیسٹ و جوابات** 🧠
-    4. **پی ڈی ایف و ٹیکسٹ فائل پروسیسنگ** 📄
+    1. **پی ڈی ایف و ٹیکسٹ فائل پروسیسنگ** 📄
+    2. **اردو آواز سے سننا (Text-to-Speech)** 🔊
+    3. **تکنیکی الفاظ کی لغت (Vocabulary)** 🔤
+    4. **امتحانی سوالات جنریٹر** ❓
+    5. **آسان اردو میں تبدیلی بٹن** ⚡
     """)
     st.divider()
     
@@ -109,12 +123,30 @@ with st.sidebar:
     st.write("👤 **ڈویلپر:** ارسلان (Arsalan)")
     st.write("🎓 AI & Software Development")
 
+# --- dynamic SYSTEM PROMPT بناء ---
+SYSTEM_PROMPT = f"""
+تمہارا نام 'EduGuide AI' ہے۔ تم پاکستان کے طلباء کے لیے ایک سمارٹ AI تعلیمی معاون ہو۔
+یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
+
+موجودہ سیشن کی ترجیحات:
+- **مضمون (Subject):** {selected_subject}
+- **تعلیمی سطح (Level):** {selected_level}
+
+سخت ترین تحریری قواعد:
+1. تمام جوابات صرف اور صرف خالص اور سلیس **اردو رسم الخط** (Urdu Script) میں ہونے چاہئیں۔
+2. چینی یا کسی دوسری غیر متعلقہ زبان کے حروف استعمال کرنا بالکل منع ہے۔
+3. اگر صارف انگریزی میں سوال پوچھے، تب بھی جواب **100% سلیس اور عام فہم اردو** میں ہی دینا ہے۔
+4. کوئز (MCQs) کی صورت میں 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
+5. **تکنیکی الفاظ کا جدول (Vocabulary Table):** ہر جواب کے آخر میں متن میں آنے والے 3 سے 5 اہم تکنیکی الفاظ (English Terms) اور ان کے اردو معانی کا ایک الگ سیکشن "🔤 اہم تکنیکی الفاظ (Glossary)" کی ہیڈنگ کے ساتھ لازمی بنائیں۔
+6. خوبصورت Markdown ہیڈنگز اور بلٹ پوائنٹس استعمال کریں۔
+"""
+
 # --- مین انٹرفیس ---
 st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
 st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
 st.write("تعلیم میں زبان کی رکاوٹ کو دور کرنے اور سلیس اردو میں سیکھنے و ٹیسٹ دینے کا جدید ترین حل۔")
 
-# --- 📁 1️⃣ فیچر: PDF اور TXT فائل اپ لوڈر ---
+# --- 📁 فائل اپ لوڈر ---
 st.subheader("📄 فائل اپ لوڈ کریں (اختیاری):")
 uploaded_file = st.file_uploader("اپنی PDF یا TXT فائل اپ لوڈ کریں تاکہ AI اس کا مواد پروسیس کر سکے:", type=['pdf', 'txt'])
 
@@ -134,7 +166,7 @@ user_input = st.text_area(
 
 # --- ایکشن بٹنز ---
 st.subheader("🎯 منتخب کریں کہ AI کیا کرے:")
-act_col1, act_col2, act_col3 = st.columns(3)
+act_col1, act_col2, act_col3, act_col4 = st.columns(4)
 
 action_prompt = None
 
@@ -143,73 +175,98 @@ with act_col1:
         action_prompt = f"برائے مہربانی مندرجہ ذیل متن یا سوال کی آسان اور سلیس اردو میں تفصیلی وضاحت کریں:\n\n{user_input}"
 
 with act_col2:
-    if st.button("📝 مختصر اردو خلاصہ (Summary) بنائیں", use_container_width=True):
+    if st.button("📝 مختصر اردو خلاصہ بنائیں", use_container_width=True):
         action_prompt = f"برائے مہربانی مندرجہ ذیل متن کا اہم نکات پر مشتمل مختصر اور جامع اردو خلاصہ بنائیں:\n\n{user_input}"
 
 with act_col3:
-    if st.button("🧠 اردو MCQ کوئز جنریٹ کریں", use_container_width=True):
+    if st.button("🧠 اردو MCQ کوئز بنائیں", use_container_width=True):
         action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک کی بنیاد پر 4 کثیر الانتخابی سوالات (MCQs) بنائیں، اختیارات دیں اور ہر سوال کے نیچے درست جواب اور مختصر اردو وضاحت بھی درج کریں:\n\n{user_input}"
+
+with act_col4:
+    if st.button("❓ اہم امتحانی سوالات جنریٹ کریں", use_container_width=True):
+        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک کی بنیاد پر 3 مختصر امتحانی سوالات (Short Questions) اور 2 تفصیلی سوالات (Long Questions) ان کے ماڈل اردو جوابات کے ساتھ تیار کریں:\n\n{user_input}"
+
+# --- AI کال کرنے کا فنکشن ---
+def fetch_ai_response(prompt_text):
+    if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
+        st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
+        return None
+    try:
+        client = Groq(api_key=MY_GROQ_KEY)
+        res = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt_text}
+            ],
+            temperature=0.1
+        )
+        raw_answer = res.choices[0].message.content
+        return remove_foreign_characters(raw_answer)
+    except Exception as e:
+        st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
+        return None
 
 # --- پراسیسنگ اور AI رسپانس ---
 if action_prompt:
     clean_input_text = user_input.strip()
-    
     if not clean_input_text:
         st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل اپ لوڈ کریں!")
-    elif not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
-        st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
     else:
-        try:
-            with st.spinner('EduGuide AI Urdu جواب تیار کر رہا ہے...'):
-                client = Groq(api_key=MY_GROQ_KEY)
-                res = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": action_prompt}
-                    ],
-                    temperature=0.1
-                )
-                
-                raw_answer = res.choices[0].message.content
-                pure_urdu_answer = remove_foreign_characters(raw_answer)
-                
-                st.divider()
-                st.subheader("📋 EduGuide AI Urdu کا جواب:")
-                st.markdown(pure_urdu_answer)
-                
-                # --- 🚀 اضافی فیچرز (Audio, Download, Copy) ---
-                st.divider()
-                st.subheader("🛠️ اضافی ٹولز (Extra Features):")
-                
-                feat_col1, feat_col2 = st.columns(2)
-                
-                # 🔊 2️⃣ فیچر: آڈیو میں سنیں (Audio Player)
-                with feat_col1:
-                    st.markdown("##### 🔊 جواب آڈیو میں سنیں:")
-                    audio_fp = generate_urdu_audio(pure_urdu_answer)
-                    if audio_fp:
-                        st.audio(audio_fp, format='audio/mp3')
-                    else:
-                        st.info("آڈیو جنریٹ نہیں ہو سکی۔")
-                
-                # 📥 3️⃣ فیچر: نتیجہ ڈاؤن لوڈ کریں (Download Button)
-                with feat_col2:
-                    st.markdown("##### 📥 نتیجہ ڈاؤن لوڈ کریں:")
-                    st.download_button(
-                        label="📄 جواب ٹیکسٹ فائل (.txt) میں ڈاؤن لوڈ کریں",
-                        data=pure_urdu_answer,
-                        file_name="EduGuide_AI_Response.txt",
-                        mime="text/plain",
-                        use_container_width=True
-                    )
-                
-                # 📋 4️⃣ فیچر: کاپی ٹو کلپ بورڈ (Copy Box)
-                st.markdown("##### 📋 متن کاپی کرنے کے لیے نیچے دیے گئے باکس کے اوپر Copy آئیکن پر کلک کریں:")
-                st.code(pure_urdu_answer, language=None)
-                                
-        except Exception as e:
-            st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
+        with st.spinner('EduGuide AI Urdu جواب تیار کر رہا ہے...'):
+            ans = fetch_ai_response(action_prompt)
+            if ans:
+                st.session_state.last_answer = ans
+
+# --- جواب ڈسپلے کرنا ---
+if st.session_state.last_answer:
+    st.divider()
+    st.subheader("📋 EduGuide AI Urdu کا جواب:")
+    st.markdown(st.session_state.last_answer)
+    
+    # ⚡ فیچر: آسان زبان میں تبدیل کرنے کا بٹن
+    st.divider()
+    simp_col1, simp_col2 = st.columns([2, 1])
+    with simp_col1:
+        st.info("کیا یہ جواب تھوڑا مشکل محسوس ہو رہا ہے؟")
+    with simp_col2:
+        if st.button("🔄 اسے اور آسان اردو میں سمجھائیں", use_container_width=True):
+            simplify_prompt = f"برائے مہربانی نیچے دیے گئے جواب کو انتہائی سادہ، بچوں جیسی عام فہم اردو اور روزمرہ کی آسان مثالوں میں دوبارہ لکھیں تاکہ چھوٹی کلاس کا طالب علم بھی آسانی سے سمجھ سکے:\n\n{st.session_state.last_answer}"
+            with st.spinner('جواب کو مزید آسان اردو میں تبدیل کیا جا رہا ہے...'):
+                simplified_ans = fetch_ai_response(simplify_prompt)
+                if simplified_ans:
+                    st.session_state.last_answer = simplified_ans
+                    st.rerun()
+
+    # --- 🚀 اضافی ٹولز (Audio, Download, Copy) ---
+    st.divider()
+    st.subheader("🛠️ اضافی ٹولز (Extra Features):")
+    
+    feat_col1, feat_col2 = st.columns(2)
+    
+    # 🔊 آڈیو میں سنیں
+    with feat_col1:
+        st.markdown("##### 🔊 جواب آڈیو میں سنیں:")
+        audio_fp = generate_urdu_audio(st.session_state.last_answer)
+        if audio_fp:
+            st.audio(audio_fp, format='audio/mp3')
+        else:
+            st.info("آڈیو جنریٹ نہیں ہو سکی۔")
+    
+    # 📥 نتیجہ ڈاؤن لوڈ کریں
+    with feat_col2:
+        st.markdown("##### 📥 نتیجہ ڈاؤن لوڈ کریں:")
+        st.download_button(
+            label="📄 جواب ٹیکسٹ فائل (.txt) میں ڈاؤن لوڈ کریں",
+            data=st.session_state.last_answer,
+            file_name="EduGuide_AI_Response.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    
+    # 📋 کاپی کرنے کا باکس
+    st.markdown("##### 📋 متن کاپی کرنے کے لیے نیچے دیے گئے باکس کے اوپر Copy آئیکن پر کلک کریں:")
+    st.code(st.session_state.last_answer, language=None)
 
 # --- فوٹر ---
 st.divider()
