@@ -3,6 +3,7 @@ import streamlit as st
 from groq import Groq
 import sys
 import os
+import re
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
@@ -31,17 +32,25 @@ except Exception:
 if not MY_GROQ_KEY:
     MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
 
-# --- 4. انتہائی سخت اور زیرو ٹالرنس لسانی پرامپٹ ---
-SYSTEM_PROMPT = """
-تمہارا نام 'EduGuide AI' ہے۔ تم ایک پاکستانی تعلیمی اسسٹنٹ ہو۔
+# --- 🎯 100% پکا فلٹر: تمام چینی، دیوناگری اور غیر ملکی حروف ہٹانے کا فنکشن ---
+def remove_foreign_characters(text):
+    if not text:
+        return ""
+    # چینی، جاپانی، کورین اور دیوناگری حروف کو کاٹ کر صاف کرنا
+    pattern = r'[\u4e00-\u9fff\u3400-\u4dbf\u20000-\u2a6df\u0900-\u097F]+'
+    cleaned_text = re.sub(pattern, '', text)
+    return cleaned_text
 
-سخت ترین اور لازمی تمام قواعد (ABSOLUTE MANDATORY RULES):
-1. تمہارا جواب صرف، صرف اور صرف **پاکستانی معیاری سلیس اردو رسم الخط (Urdu Script)** میں ہونا چاہیے۔
-2. چینی (Chinese characters like 汉字), جاپانی، کورین، یا عربی کے اضافی اعراب اور غیر معمولی علامات استعمال کرنا **سخت ترین جرم اور منع** ہے۔
-3. کسی بھی قسم کا چینی لفظ یا کریکٹر نظر نہیں آنا چاہیے۔ اگر چینی لفظ آیا تو سسٹم ریجیکٹ ہو جائے گا۔
-4. اگر صارف انگریزی میں سوال پوچھے، تب بھی جواب **100% سلیس اور عام فہم اردو** میں ہی دینا ہے۔
-5. کوئز (MCQs) بناتے وقت 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
-6. صاف ستھری Markdown ہیڈنگز اور بلٹ پوائنٹس استعمال کریں۔
+# --- 4. سخت ترین لسانی پرامپٹ ---
+SYSTEM_PROMPT = """
+تمہارا نام 'EduGuide AI' ہے۔ تم پاکستان کے طلباء کے لیے ایک سمارٹ AI تعلیمی معاون ہو۔
+یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
+
+سخت ترین تحریری قواعد:
+1. تمام جوابات صرف اور صرف خالص اور سلیس **اردو رسم الخط** (Urdu Script) میں ہونے چاہئیں۔
+2. اگر صارف انگریزی میں سوال پوچھے، تب بھی جواب **100% سلیس اور عام فہم اردو** میں ہی دینا ہے۔
+3. کوئز (MCQs) کی صورت میں 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
+4. خوبصورت Markdown ہیڈنگز اور بلٹ پوائنٹس استعمال کریں۔
 """
 
 # --- سائڈ بار ---
@@ -90,21 +99,21 @@ action_prompt = None
 
 with act_col1:
     if st.button("🔍 آسان اردو میں وضاحت کریں", use_container_width=True):
-        action_prompt = f"صرف خالص اردو میں مندرجہ ذیل متن یا سوال کی آسان اور سلیس اردو میں تفصیلی وضاحت کریں:\n\n{user_input}"
+        action_prompt = f"برائے مہربانی مندرجہ ذیل متن یا سوال کی آسان اور سلیس اردو میں تفصیلی وضاحت کریں:\n\n{user_input}"
 
 with act_col2:
     if st.button("📝 مختصر اردو خلاصہ (Summary) بنائیں", use_container_width=True):
-        action_prompt = f"صرف خالص اردو میں مندرجہ ذیل متن کا اہم نکات پر مشتمل مختصر اور جامع اردو خلاصہ بنائیں:\n\n{user_input}"
+        action_prompt = f"برائے مہربانی مندرجہ ذیل متن کا اہم نکات پر مشتمل مختصر اور جامع اردو خلاصہ بنائیں:\n\n{user_input}"
 
 with act_col3:
     if st.button("🧠 اردو MCQ کوئز جنریٹ کریں", use_container_width=True):
-        action_prompt = f"صرف خالص اردو میں مندرجہ ذیل متن/ٹاپک کی بنیاد پر 4 کثیر الانتخابی سوالات (MCQs) بنائیں، اختیارات دیں اور ہر سوال کے نیچے درست جواب اور مختصر اردو وضاحت بھی درج کریں:\n\n{user_input}"
+        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک کی بنیاد پر 4 کثیر الانتخابی سوالات (MCQs) بنائیں، اختیارات دیں اور ہر سوال کے نیچے درست جواب اور مختصر اردو وضاحت بھی درج کریں:\n\n{user_input}"
 
 # --- پراسیسنگ اور AI رسپانس ---
 if action_prompt:
-    clean_text = user_input.strip()
+    clean_input_text = user_input.strip()
     
-    if not clean_text:
+    if not clean_input_text:
         st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال یا مضمون درج کریں!")
     elif not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
@@ -118,14 +127,17 @@ if action_prompt:
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": action_prompt}
                     ],
-                    temperature=0.0  # بالکل درست اور بغیر کسی غلط کریکٹر کے جواب کے لیے
+                    temperature=0.1
                 )
                 
-                answer = res.choices[0].message.content
+                raw_answer = res.choices[0].message.content
+                
+                # 🔥 سکرین پر دکھانے سے پہلے تمام چینی حروف صاف کرنا
+                pure_urdu_answer = remove_foreign_characters(raw_answer)
                 
                 st.divider()
                 st.subheader("📋 EduGuide AI Urdu کا جواب:")
-                st.markdown(answer)
+                st.markdown(pure_urdu_answer)
                                 
         except Exception as e:
             st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
