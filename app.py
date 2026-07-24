@@ -2,6 +2,7 @@ import streamlit as st
 from groq import Groq
 import sys
 import os
+import re
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
@@ -10,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- 2. اردو سپورٹ اور انکوڈنگ فکس ---
+# --- 2. انکوڈنگ فکس ---
 os.environ["PYTHONIOENCODING"] = "utf-8"
 if sys.stdout.encoding != 'utf-8':
     try:
@@ -18,7 +19,7 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 3. گروک اے پی آئی کی (Groq API Key) حاصل کرنا (Safe Method) ---
+# --- 3. گروک اے پی آئی کی (Groq API Key) حاصل کرنا ---
 MY_GROQ_KEY = None
 
 try:
@@ -30,29 +31,24 @@ except Exception:
 if not MY_GROQ_KEY:
     MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
 
-# --- 4. اپ گریڈڈ اور سخت لسانی پرامپٹ (Strict System Prompt) ---
+# غیر ضروری یا چینی حروف فلٹر کرنے کا فنکشن
+def clean_urdu_text(text):
+    return re.sub(r'[\u4e00-\u9fff\u3400-\u4dbf\u20000-\u2a6df]+', '', text)
+
+# --- 4. سسٹم پرامپٹ (System Prompt) ---
 SYSTEM_PROMPT = """
-تمہارا نام 'EduGuide AI: Urdu Learning & Assessment Assistant' ہے۔ تم پاکستان کے طلباء کے لیے ایک سمارٹ AI تعلیمی معاون اور اسسٹنٹ ہو۔
-یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے تحت پاکستان کے طلباء کے لیے تیار کیا گیا ہے۔
+تمہارا نام 'EduGuide AI: Urdu Learning & Assessment Assistant' ہے۔ تم پاکستان کے طلباء کے لیے ایک سمارٹ AI تعلیمی معاون ہو۔
+یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
 
-تمہاری 3 بنیادی ذمہ داریاں ہیں:
-1. Urdu Concept Explainer: صارف کے دیے گئے کسی بھی تعلیمی سوال، مضمون یا انگریزی ٹاپک کو نہایت آسان، سلیس اور عام فہم اردو میں منتقل اور واضح کرنا۔
-2. Urdu Text Summarizer: بڑی تعلیمی تحریر یا مضمون کا مختصر اور جامع خلاصہ (Key Points) اردو میں تیار کرنا۔
-3. Urdu MCQ Quiz Generator: صارف کے فراہم کردہ ٹاپک یا تحریر پر 3 سے 5 کثیر الانتخابی سوالات (MCQs) جوابات اور وضاحت کے ساتھ بنانا۔
-
-سخت لسانی اور تحریری قواعد (STRICT MANDATORY RULES):
-1. تمام جوابات صرف اور صرف خالص اور سلیس اردو رسم الخط (Urdu Script) میں ہونے چاہئیں۔
-2. چینی (Chinese)، عربی اعراب کی غلطیاں، یا بے معنی غیر ملکی حروف (Garbage Tokens/Foreign Characters) سخت منع ہیں۔
-3. اگر صارف انگریزی میں بھی سوال یا متن فراہم کرے، تب بھی تمہارا جواب **100% خالص اور عام فہم اردو** میں ہونا چاہیے۔
-4. رومن اردو، ہندی رسم الخط یا غیر ضروری انگلش مکسنگ سے پرہیز کریں۔
-5. جوابات میں خوبصورت ہیڈنگز، بولڈ ٹیکسٹ اور بلٹ پوائنٹس کا استعمال کریں۔
-
-کوئز (MCQ Quiz) کے لیے خاص ہدایات:
-- جب صارف کوئز یا MCQs بنانے کا کہے، تو سوالات کے ساتھ 4 اختیارات (الف، ب، ج، د) بناؤ۔
-- ہر سوال کے بالکل نیچے **"درست جواب:"** اور اس کی **"مختصر اردو وضاحت:"** لازمی لکھو تاکہ طالب علم اپنی خود احتسابی (Self-Assessment) کر سکے۔
+سخت ترین لسانی اور تحریری قواعد (STRICT MANDATORY RULES):
+1. تمام جوابات صرف اور صرف **خالص اور سلیس اردو** (Urdu Script) میں ہونے چاہئیں۔
+2. چینی (Chinese)، غیر ضروری اعراب، یا بے معنی حروف سخت ممنوع ہیں۔
+3. اگر صارف کا متن انگریزی میں ہے اور وہ خلاصہ، کوئز یا وضاحت مانگے، تو بھی تمہارا جواب **100% سلیس اردو** میں ہونا چاہیے۔
+4. کوئز کی صورت میں سوالات، 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
+5. جواب میں Markdown ہیڈنگز اور بلٹ پوائنٹس استعمال کریں۔
 """
 
-# --- سائڈ بار (برانڈنگ اور کریڈٹس) ---
+# --- سائڈ بار ---
 with st.sidebar:
     st.title("🚀 EduGuide AI Urdu")
     st.caption("Urdu Learning & Assessment Assistant")
@@ -80,58 +76,102 @@ with st.sidebar:
 
 # --- مین انٹرفیس ---
 st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
-st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کے لیے تیار کردہ سمارٹ حل**")
-st.write("تعلیم میں زبان کی رکاوٹ کو دور کرنے اور سلیس اردو میں سیکھنے و ٹیسٹ دینے کا جدید ترین ذریعہ۔")
+st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
+st.write("تعلیم میں زبان کی رکاوٹ کو دور کرنے اور سلیس اردو میں سیکھنے و ٹیسٹ دینے کا جدید ترین حل۔")
 
-if 'user_input' not in st.session_state:
-    st.session_state.user_input = ""
+# --- سیشن اسٹیٹ ہینڈلنگ (فکسڈ) ---
+if "user_text" not in st.session_state:
+    st.session_state["user_text"] = ""
 
-def set_query(query):
-    st.session_state.user_input = query
+def set_sample_text(text):
+    st.session_state["user_text"] = text
 
-# --- 5. فوری فیچر بٹنز ---
-st.subheader("💡 فیچر منتخب کریں یا ڈائریکٹ سوال پوچھیں:")
-col_btn1, col_btn2, col_btn3 = st.columns(3)
+# --- 5. سیمپل بٹنز (مثال کے لیے) ---
+st.subheader("💡 اگر آپ کے پاس سوال نہیں ہے، تو مثال کے لیے نیچے کلک کریں:")
+col_sample1, col_sample2, col_sample3 = st.columns(3)
 
-with col_btn1:
-    if st.button("📖 ٹاپک کی اردو میں وضاحت"):
-        set_query("Photosynthesis (ضیاعی تالیف) کیا ہے؟ اس کو آسان اردو میں تفصیل سے سمجھائیں۔")
+with col_sample1:
+    st.button(
+        "📖 مثال 1: وضاحت", 
+        on_click=set_sample_text, 
+        args=("Photosynthesis (ضیاعی تالیف) کیا ہے؟ اس کو آسان اردو میں تفصیل سے سمجھائیں۔",)
+    )
 
-with col_btn2:
-    if st.button("📝 نالج کا خلاصہ (Summary)"):
-        set_query("مندرجہ ذیل ٹاپک کا مختصر اور جامع اردو خلاصہ بنائیں: Artificial Intelligence in Modern Education")
+with col_sample2:
+    st.button(
+        "📝 مثال 2: خلاصہ", 
+        on_click=set_sample_text, 
+        args=("Artificial Intelligence is transforming modern education by providing personalized learning experiences, automating administrative tasks, and assisting students in overcoming language barriers.",)
+    )
 
-with col_btn3:
-    if st.button("🧠 اردو MCQ کوئز جنریٹ کریں"):
-        set_query("کمپیوٹر نیٹ ورکس (Computer Networks) کے بنیادی مفاہیم پر 4 اردو MCQs بنائیں، اختیارات دیں اور ساتھ میں درست جواب اور اس کی وضاحت بھی درج کریں۔")
+with col_sample3:
+    st.button(
+        "🧠 مثال 3: کوئز", 
+        on_click=set_sample_text, 
+        args=("کمپیوٹر نیٹ ورکس (Computer Networks) کے بنیادی مفاہیم پر 4 اردو MCQs بنائیں۔",)
+    )
 
-# ان پٹ باکس
-user_query = st.text_area("اپنا تعلیمی سوال، مضمون یا ٹیکسٹ یہاں درج کریں:", value=st.session_state.user_input, height=130)
+# ان پٹ باکس (Key کی مدد سے سیشن میں ڈائریکٹ محفوظ ہوگا)
+user_input = st.text_area(
+    "اپنا تعلیمی سوال، مضمون یا متن یہاں درج کریں:", 
+    key="user_text", 
+    height=140
+)
 
-# --- پراسیسنگ ---
-if st.button("AI سے جواب حاصل کریں 🔍", type="primary"):
-    if not user_query:
-        st.warning("ارسلان بھائی، پہلے کوئی ٹیکسٹ یا سوال تو درج کریں!")
+# --- ایکشن بٹنز ---
+st.subheader("🎯 اب منتخب کریں کہ اس متن کے ساتھ کیا کرنا ہے:")
+act_col1, act_col2, act_col3 = st.columns(3)
+
+action_type = None
+
+with act_col1:
+    if st.button("🔍 آسان اردو میں وضاحت کریں", use_container_width=True):
+        action_type = "explain"
+
+with act_col2:
+    if st.button("📝 مختصر اردو خلاصہ (Summary) بنائیں", use_container_width=True):
+        action_type = "summarize"
+
+with act_col3:
+    if st.button("🧠 اردو MCQ کوئز جنریٹ کریں", use_container_width=True):
+        action_type = "quiz"
+
+# --- پراسیسنگ اور AI رسپانس ---
+if action_type:
+    # براہ راست موجودہ ٹیکسٹ باکس سے ٹیکسٹ حاصل کریں
+    current_text = st.session_state["user_text"].strip()
+    
+    if not current_text:
+        st.warning("ارسلان بھائی، پہلے نیچے باکس میں کوئی متن یا سوال تو درج کریں!")
     elif not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
     else:
+        # پرامپٹ کی تیاری
+        if action_type == "explain":
+            action_prompt = f"مندرجہ ذیل متن یا سوال کی آسان اور سلیس اردو میں تفصیل سے وضاحت کریں:\n\n{current_text}"
+        elif action_type == "summarize":
+            action_prompt = f"مندرجہ ذیل متن کا اہم نکات پر مشتمل مختصر اور جامع اردو خلاصہ بنائیں:\n\n{current_text}"
+        elif action_type == "quiz":
+            action_prompt = f"مندرجہ ذیل متن/ٹاپک کی بنیاد پر 4 کثیر الانتخابی سوالات (MCQs) بنائیں، اختیارات دیں اور ہر سوال کے نیچے درست جواب اور مختصر اردو وضاحت بھی درج کریں:\n\n{current_text}"
+
         try:
-            with st.spinner('EduGuide AI Urdu جواب اور ٹیسٹ تیار کر رہا ہے...'):
+            with st.spinner('EduGuide AI Urdu جواب تیار کر رہا ہے...'):
                 client = Groq(api_key=MY_GROQ_KEY)
                 res = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_query}
+                        {"role": "user", "content": action_prompt}
                     ],
-                    temperature=0.2, # خالص اور مستحکم اردو کے لیے
-                    top_p=0.9
+                    temperature=0.1,
+                    top_p=0.8
                 )
-                answer = res.choices[0].message.content
+                raw_answer = res.choices[0].message.content
+                clean_answer = clean_urdu_text(raw_answer)
                 
                 st.divider()
                 st.subheader("📋 EduGuide AI Urdu کا جواب:")
-                st.markdown(answer)
+                st.markdown(clean_answer)
                                 
         except Exception as e:
             st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
