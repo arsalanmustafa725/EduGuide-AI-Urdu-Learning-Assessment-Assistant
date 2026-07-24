@@ -195,26 +195,38 @@ with act_col4:
     if st.button("❓ اہم امتحانی سوالات جنریٹ کریں", use_container_width=True):
         action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک کی بنیاد پر 3 مختصر امتحانی سوالات (Short Questions) اور 2 تفصیلی سوالات (Long Questions) ان کے ماڈل اردو جوابات کے ساتھ تیار کریں:\n\n{user_input}"
 
-# --- AI کال کرنے کا فنکشن ---
+# --- AI کال کرنے کا فنکشن (With Automatic Fallback) ---
 def fetch_ai_response(prompt_text):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
         return None
-    try:
-        client = Groq(api_key=MY_GROQ_KEY)
-        res = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt_text}
-            ],
-            temperature=0.1
-        )
-        raw_answer = res.choices[0].message.content
-        return remove_foreign_characters(raw_answer)
-    except Exception as e:
-        st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
-        return None
+    
+    client = Groq(api_key=MY_GROQ_KEY)
+    
+    # پہلے تیز اور زیادہ حد والے 8b ماڈل سے کوشش کریں گے
+    models_to_try = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+    
+    for model_name in models_to_try:
+        try:
+            res = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt_text}
+                ],
+                temperature=0.1
+            )
+            raw_answer = res.choices[0].message.content
+            return remove_foreign_characters(raw_answer)
+        except Exception as e:
+            if "rate_limit_exceeded" in str(e).lower():
+                continue # اگر ریٹ لمٹ آئے تو اگلے ماڈل پر سوئچ کرو
+            else:
+                st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
+                return None
+                
+    st.error("معذرت! تمام AI ماڈلز کی روزانہ کی لمٹ ختم ہو چکی ہے۔ کچھ دیر بعد کوشش کریں یا نئی API Key استعمال کریں۔")
+    return None
 
 # --- پراسیسنگ اور AI رسپانس ---
 if action_prompt:
