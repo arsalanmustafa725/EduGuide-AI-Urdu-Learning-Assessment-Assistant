@@ -27,33 +27,8 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 3. گروک اے پی آئی کی (Groq API Key) حاصل کرنا ---
-MY_GROQ_KEY = None
-try:
-    if "GROQ_API_KEY" in st.secrets:
-        MY_GROQ_KEY = st.secrets["GROQ_API_KEY"]
-except Exception:
-    pass
-
-if not MY_GROQ_KEY:
-    MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
-
-# --- 4. سیشن سٹیٹ (Session State Initializations) ---
-if "last_answer" not in st.session_state:
-    st.session_state.last_answer = None
-if "total_questions" not in st.session_state:
-    st.session_state.total_questions = 0
-if "quiz_score" not in st.session_state:
-    st.session_state.quiz_score = 0
-if "quiz_total" not in st.session_state:
-    st.session_state.quiz_total = 0
-
-# --- 🎨 CSS ، اردو نستعلیق فونٹس اور الخدمت تھیم ---
-st.sidebar.subheader("🎨 تھیم اور نیٹ ورک سیٹ اپ")
-alkhidmat_theme = st.sidebar.toggle("🟢 الخدمت برانڈنگ تھیم (Green/Blue)", value=True)
-low_bandwidth = st.sidebar.toggle("⚡ لو بینڈوڈتھ / دیہاتی موڈ (2G Mode)", value=False)
-
-theme_css = """
+# --- 🎨 CSS اور اردو فونٹس ---
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
@@ -66,25 +41,28 @@ html, body, [class*="css"], h1, h2, h3, h4, h5, h6, p, div, span, label {
     font-weight: bold;
 }
 </style>
-"""
+""", unsafe_allow_html=True)
 
-if alkhidmat_theme:
-    theme_css += """
-<style>
-.stApp {
-    background-color: #f4f9f5;
-}
-h1, h2, h3 {
-    color: #0d6efd !important;
-}
-.stButton > button {
-    background-color: #198754 !important;
-    color: white !important;
-}
-</style>
-"""
+# --- 3. گروک اے پی آئی کی حاصل کرنا ---
+MY_GROQ_KEY = None
+try:
+    if "GROQ_API_KEY" in st.secrets:
+        MY_GROQ_KEY = st.secrets["GROQ_API_KEY"]
+except Exception:
+    pass
 
-st.markdown(theme_css, unsafe_allow_html=True)
+if not MY_GROQ_KEY:
+    MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
+
+# --- 4. سیشن سٹیٹ ---
+if "last_answer" not in st.session_state:
+    st.session_state.last_answer = None
+if "total_questions" not in st.session_state:
+    st.session_state.total_questions = 0
+if "quiz_score" not in st.session_state:
+    st.session_state.quiz_score = 0
+if "quiz_total" not in st.session_state:
+    st.session_state.quiz_total = 0
 
 # --- 🎯 مددگار فنکشنز ---
 def remove_foreign_characters(text):
@@ -144,6 +122,20 @@ with st.sidebar:
     st.caption("Urdu Learning & Assessment Assistant")
     st.divider()
     
+    st.subheader("🎨 تھیم اور نیٹ ورک سیٹ اپ")
+    alkhidmat_theme = st.toggle("🟢 الخدمت برانڈنگ تھیم (Green/Blue)", value=True)
+    low_bandwidth = st.toggle("⚡ لو بینڈوڈتھ / دیہاتی موڈ (2G Mode)", value=False)
+    
+    if alkhidmat_theme:
+        st.markdown("""
+        <style>
+        .stApp { background-color: #f4f9f5; }
+        h1, h2, h3 { color: #0d6efd !important; }
+        .stButton > button { background-color: #198754 !important; color: white !important; }
+        </style>
+        """, unsafe_allow_html=True)
+
+    st.divider()
     st.subheader("🏛️ 1️⃣ تعلیمی بورڈ کی سلیکشن (Board)")
     selected_board = st.selectbox(
         "اپنا تعلیمی بورڈ منتخب کریں:",
@@ -179,7 +171,6 @@ with st.sidebar:
     )
     
     st.divider()
-    # 📊 اسٹوڈنٹ پرفارمنس ڈیش بورڈ
     st.subheader("📈 اسٹوڈنٹ پرفارمنس ڈیش بورڈ")
     st.metric(label="کل پوچھے گئے سوالات", value=st.session_state.total_questions)
     col_q1, col_q2 = st.columns(2)
@@ -237,8 +228,9 @@ image_bytes = None
 
 with tab_file:
     uploaded_file = st.file_uploader(
-        "اپنی PDF، TXT فائل یا سوال/فارمولا/نوٹس کی تصویر اپ لوڈ کریں:", 
-        type=['pdf', 'txt', 'png', 'jpg', 'jpeg']
+        "", 
+        type=['pdf', 'txt', 'png', 'jpg', 'jpeg'],
+        label_visibility="collapsed"
     )
     if uploaded_file is not None:
         if uploaded_file.name.lower().endswith(('.png', '.jpg', '.jpeg')):
