@@ -27,24 +27,40 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس ---
+🎨 CSS اور اردو فونٹس (فکسڈ - Overflow & Alignment) ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
-html, body, [class*="css"], h1, h2, h3, h4, h5, h6, p, div, span {
+/* اردو فونٹس صرف ہیڈنگز اور عام پیراگراف پر اپلائی کریں، بٹن اور فائل اپلوڈر پر نہیں */
+h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Segoe UI', sans-serif !important;
 }
+
 .stButton > button {
     width: 100%;
     border-radius: 8px;
     font-weight: bold;
 }
 
-/* 🛠️ File Uploader Label & Duplicate Text Fix */
+/* 🛠️ File Uploader Fix: باکس اور بٹن کا کنٹرول */
 [data-testid="stFileUploader"] label {
     display: none !important;
 }
+
+[data-testid="stFileUploader"] section {
+    padding: 1rem !important;
+    min-height: 110px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+[data-testid="stFileUploader"] section * {
+    font-family: 'Segoe UI', sans-serif !important; /* بٹن کے اندر کا متن انگریزی فونٹ پر رکھیں تاکہ سائز نہ بگڑے */
+    font-size: 14px !important;
+}
+
 [data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"] p {
     display: none !important;
 }
