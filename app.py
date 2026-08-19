@@ -229,7 +229,7 @@ audio_val = None
 
 with tab_file:
     uploaded_file = st.file_uploader(
-        "فائل چنیں:", 
+        "فائل اپ لوڈ کریں",
         type=['pdf', 'txt', 'png', 'jpg', 'jpeg'],
         label_visibility="collapsed"
     )
