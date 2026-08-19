@@ -2,4 +2,4 @@ streamlit
 groq
 gTTS
 PyPDF2
- 
+Pillow
