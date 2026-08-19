@@ -121,17 +121,6 @@ with st.sidebar:
     )
     
     st.divider()
-    st.subheader("🛠️ 6 جدید تعلیمی فیچرز")
-    st.markdown("""
-    1. **بورڈ و نصاب کی سلیکشن** 🏛️
-    2. **AI اسٹڈی و ایگزام پلانر** 📅
-    3. **خودکار امتحانی پیپر جنریٹر** 📝
-    4. **فارمولا و سائنس حل کنندہ** 🧪
-    5. **خودکار اصلاح و اشارہ (Hint)** 💡
-    6. **اردو اصطلاحات کی لغت** 🔤
-    """)
-    st.divider()
-    
     st.subheader("🤝 معاون و سرپرست")
     st.markdown("""
     * 🌟 **الخدمت فاؤنڈیشن (Alkhidmat Foundation)**
@@ -196,42 +185,10 @@ user_input = st.text_area(
     "اپنا تعلیمی سوال، ٹاپک یا ہدایت یہاں درج کریں:", 
     value=file_extracted_text if file_extracted_text else "",
     height=140,
-    placeholder="یہاں اپنا سوال، ریاضی کا فارمولا، یا ایگزام پلان کی ہدایت درج کریں..."
+    placeholder="یہاں اپنا سوال، ریاضی کا فارمولا، یا نوٹس درج کریں..."
 )
 
-# --- 🎯 6 تعلیمی فیچرز کے ایکشن بٹنز ---
-st.subheader("🎓 6 تعلیمی ٹولز (Educational Action Tools):")
-
-row1_col1, row1_col2, row1_col3 = st.columns(3)
-row2_col1, row2_col2, row2_col3 = st.columns(3)
-
-action_prompt = None
-
-with row1_col1:
-    if st.button("🔍 1. بورڈ کے مطابق وضاحت", use_container_width=True):
-        action_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق مندرجہ ذیل سوال/ٹاپک کی سلیس اردو میں تفصیلی وضاحت کریں:\n\n{user_input}"
-
-with row1_col2:
-    if st.button("📅 2. AI اسٹڈی پلانر بنائیں", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل مضمون/ٹاپکس کے لیے {selected_board} کے امتحان کی تیاری کا ایک منظم روزانہ کا AI اسٹڈی پلانر (Study Roadmap) تیار کریں:\n\n{user_input}"
-
-with row1_col3:
-    if st.button("📝 3. مکمل ماڈل پیپر جنریٹ کریں", use_container_width=True):
-        action_prompt = f"برائے مہربانی {selected_board} کے ایگزام پیٹرن کے مطابق مندرجہ ذیل ٹاپک پر ایک مکمل ماڈل پیپر بنائیں جس میں 10 MCQs، 5 مختصر سوالات اور 2 تفصیلی سوالات ماڈل اردو جوابات کے ساتھ شامل ہوں:\n\n{user_input}"
-
-with row2_col1:
-    if st.button("🧪 4. فارمولا و سائنس حل کنندہ", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل ریاضی کی مساوات، فزکس کے عددی مسئلے یا سائنس کے فارمولے کو Step-by-Step آسان اردو میں حل کریں اور ہر مرحلے کی وضاحت کریں:\n\n{user_input}"
-
-with row2_col2:
-    if st.button("💡 5. خودکار اصلاح و اشارہ (Hint)", use_container_width=True):
-        action_prompt = f"طالب علم نے درج ذیل سوال کا جواب دیا ہے یا سوال پوچھا ہے۔ برائے مہربانی ڈائریکٹ پورا جواب بتانے کے بجائے اسے ایک سوچنے پر مجبور کرنے والا چھوٹا اشارہ (Hint) اور گائیڈنس دیں تاکہ وہ خود صحیح جواب تک پہنچے:\n\n{user_input}"
-
-with row2_col3:
-    if st.button("🔤 6. اردو اصطلاحات لغت (Glossary)", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک میں استعمال ہونے والی تمام مشکل تکنیکی انگریزی اصطلاحات کو چن کر ان کا اردو ترجمہ، تشریح اور عام فہم روزمرہ مثالیں ایک لغت کی صورت میں بنائیں:\n\n{user_input}"
-
-# --- AI کال کرنے کا فنکشن (Text & Vision Support + Model Fallback) ---
+# --- AI کال کرنے کا فنکشن ---
 def fetch_ai_response(prompt_text, img_data=None):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
@@ -292,36 +249,66 @@ def fetch_ai_response(prompt_text, img_data=None):
         st.error(f"API کی کا مسئلہ ہے: {str(e)}")
         return None
 
-# --- پراسیسنگ اور AI رسپانس ---
-if action_prompt:
+# --- 🚀 مرکزی جواب حاصل کرنے کا بٹن ---
+if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width=True, type="primary"):
     clean_input_text = user_input.strip()
     if not clean_input_text and not image_bytes:
         st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر اپ لوڈ کریں!")
     else:
-        with st.spinner('EduGuide AI تعلیمی مواد تیار کر رہا ہے...'):
-            ans = fetch_ai_response(action_prompt, image_bytes)
+        with st.spinner('EduGuide AI جواب تیار کر رہا ہے...'):
+            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{user_input}"
+            ans = fetch_ai_response(main_prompt, image_bytes)
             if ans:
                 st.session_state.last_answer = ans
 
-# --- جواب ڈسپلے کرنا ---
+# --- 📋 جواب اور ایجوکیشنل ٹولز کا ڈسپلے ---
 if st.session_state.last_answer:
     st.divider()
     st.subheader("📋 EduGuide AI کا تعلیمی جواب:")
     st.markdown(st.session_state.last_answer)
     
+    # اگر عدم مطابقت کا پیغام نہ ہو صرف تب ایجوکیشنل ٹولز اور آپشنز دکھائیں
     if "مضمون میں عدم مطابقت" not in st.session_state.last_answer:
         st.divider()
-        simp_col1, simp_col2 = st.columns([2, 1])
-        with simp_col1:
-            st.info("کیا یہ تعلیمی جواب مشکل محسوس ہو رہا ہے؟")
-        with simp_col2:
-            if st.button("🔄 اسے اور آسان اردو میں سمجھائیں", use_container_width=True):
-                simplify_prompt = f"برائے مہربانی نیچے دیے گئے جواب کو انتہائی سادہ، عام فہم اردو اور آسان مثالوں میں دوبارہ لکھیں:\n\n{st.session_state.last_answer}"
-                with st.spinner('جواب کو مزید آسان اردو میں تبدیل کیا جا رہا ہے...'):
-                    simplified_ans = fetch_ai_response(simplify_prompt, image_bytes)
-                    if simplified_ans:
-                        st.session_state.last_answer = simplified_ans
-                        st.rerun()
+        st.subheader("🎓 اس جواب پر مزید ایجوکیشنل AI ٹولز استعمال کریں:")
+        st.caption("مندرجہ بالا جواب کو مزید بہتر بنانے یا پروسیس کرنے کے لیے نیچے دیے گئے بٹنز پر کلک کریں:")
+        
+        row1_col1, row1_col2, row1_col3 = st.columns(3)
+        row2_col1, row2_col2, row2_col3 = st.columns(3)
+        
+        tool_prompt = None
+        
+        with row1_col1:
+            if st.button("🔍 1. مزید آسان اردو میں سمجھائیں", use_container_width=True):
+                tool_prompt = f"برائے مہربانی اس جواب کو اور زیادہ سادہ، عام فہم اور روزمرہ کی آسان مثالوں میں دوبارہ لکھیں:\n\n{st.session_state.last_answer}"
+        
+        with row1_col2:
+            if st.button("📅 2. AI اسٹڈی پلانر بنائیں", use_container_width=True):
+                tool_prompt = f"برائے مہربانی اس تعلیمی جواب اور مضمون کی روشنی میں {selected_board} کے امتحان کی تیاری کا ایک منظم 15 دن کا اسٹڈی پلانر (Study Roadmap) تیار کریں:\n\n{st.session_state.last_answer}"
+        
+        with row1_col3:
+            if st.button("📝 3. مکمل ماڈل پیپر جنریٹ کریں", use_container_width=True):
+                tool_prompt = f"برائے مہربانی اس حاصل شدہ جواب کے ٹاپک پر {selected_board} کے ایگزام پیٹرن کے مطابق ایک مکمل ماڈل پیپر بنائیں جس میں 10 MCQs، 5 مختصر سوالات اور 2 تفصیلی سوالات ماڈل اردو جوابات کے ساتھ شامل ہوں:\n\n{st.session_state.last_answer}"
+        
+        with row2_col1:
+            if st.button("🧪 4. Step-by-Step فارمولا حل", use_container_width=True):
+                tool_prompt = f"برائے مہربانی اس جواب میں موجود تمام فارمولوں یا ریاضی/فزکس کے مسائل کو Step-by-Step اور وضاحت کے ساتھ حل کریں:\n\n{st.session_state.last_answer}"
+        
+        with row2_col2:
+            if st.button("💡 5. سوچنے کے لیے اشارہ (Hint) دیں", use_container_width=True):
+                tool_prompt = f"اس جواب کی بنیاد پر طالب علم سے ایک سوال پوچھیں اور ساتھ میں ایک چھوٹا اشارہ (Hint) دیں تاکہ طالب علم خود سوچ کر جواب دینے کی کوشش کرے:\n\n{st.session_state.last_answer}"
+        
+        with row2_col3:
+            if st.button("🔤 6. اہم تکنیکی الفاظ کی لغت", use_container_width=True):
+                tool_prompt = f"برائے مہربانی اس جواب میں آنے والی تمام مشکل انگریزی و سائنس کی اصطلاحات کی ایک علیحدہ اردو لغت (Glossary) بمعہ تشریح بنائیں:\n\n{st.session_state.last_answer}"
+        
+        # اگر کسی ایجوکیشنل ٹول کا بٹن دبایا جائے
+        if tool_prompt:
+            with st.spinner('EduGuide AI منتخب کردہ ٹول کا پروسیس چلا رہا ہے...'):
+                processed_ans = fetch_ai_response(tool_prompt, image_bytes)
+                if processed_ans:
+                    st.session_state.last_answer = processed_ans
+                    st.rerun()
 
     # --- 🚀 اضافی ٹولز (Audio, Download, Copy) ---
     st.divider()
