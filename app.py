@@ -195,7 +195,7 @@ with act_col4:
     if st.button("❓ اہم امتحانی سوالات جنریٹ کریں", use_container_width=True):
         action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک کی بنیاد پر 3 مختصر امتحانی سوالات (Short Questions) اور 2 تفصیلی سوالات (Long Questions) ان کے ماڈل اردو جوابات کے ساتھ تیار کریں:\n\n{user_input}"
 
-# --- AI کال کرنے کا فنکشن (With Automatic Fallback) ---
+# --- AI کال کرنے کا فنکشن (Fixed Active Models) ---
 def fetch_ai_response(prompt_text):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
@@ -203,8 +203,8 @@ def fetch_ai_response(prompt_text):
     
     client = Groq(api_key=MY_GROQ_KEY)
     
-    # پہلے تیز اور زیادہ حد والے 8b ماڈل سے کوشش کریں گے
-    models_to_try = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+    # 🎯 ایکٹیو اور ورکنگ Groq ماڈلز
+    models_to_try = ["llama-3.3-70b-versatile", "llama3-8b-8192"]
     
     for model_name in models_to_try:
         try:
@@ -219,7 +219,7 @@ def fetch_ai_response(prompt_text):
             raw_answer = res.choices[0].message.content
             return remove_foreign_characters(raw_answer)
         except Exception as e:
-            if "rate_limit_exceeded" in str(e).lower():
+            if "rate_limit" in str(e).lower():
                 continue # اگر ریٹ لمٹ آئے تو اگلے ماڈل پر سوئچ کرو
             else:
                 st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
