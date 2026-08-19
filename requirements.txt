@@ -3,3 +3,4 @@ groq
 gTTS
 PyPDF2
 Pillow
+reportlab
