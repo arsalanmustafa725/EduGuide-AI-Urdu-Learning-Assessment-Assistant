@@ -27,33 +27,8 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 3. گروک اے پی آئی کی (Groq API Key) حاصل کرنا ---
-MY_GROQ_KEY = None
-try:
-    if "GROQ_API_KEY" in st.secrets:
-        MY_GROQ_KEY = st.secrets["GROQ_API_KEY"]
-except Exception:
-    pass
-
-if not MY_GROQ_KEY:
-    MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
-
-# --- 4. سیشن سٹیٹ (Session State Initializations) ---
-if "last_answer" not in st.session_state:
-    st.session_state.last_answer = None
-if "total_questions" not in st.session_state:
-    st.session_state.total_questions = 0
-if "quiz_score" not in st.session_state:
-    st.session_state.quiz_score = 0
-if "quiz_total" not in st.session_state:
-    st.session_state.quiz_total = 0
-
-# --- 🎨 CSS ، اردو نستعلیق فونٹس اور الخدمت تھیم ---
-st.sidebar.subheader("🎨 تھیم اور نیٹ ورک سیٹ اپ")
-alkhidmat_theme = st.sidebar.toggle("🟢 الخدمت برانڈنگ تھیم (Green/Blue)", value=True)
-low_bandwidth = st.sidebar.toggle("⚡ لو بینڈوڈتھ / دیہاتی موڈ (2G Mode)", value=False)
-
-theme_css = """
+# --- 🎨 CSS اور اردو فونٹس ---
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
@@ -66,25 +41,28 @@ html, body, [class*="css"], h1, h2, h3, h4, h5, h6, p, div, span, label {
     font-weight: bold;
 }
 </style>
-"""
+""", unsafe_allow_html=True)
 
-if alkhidmat_theme:
-    theme_css += """
-<style>
-.stApp {
-    background-color: #f4f9f5;
-}
-h1, h2, h3 {
-    color: #0d6efd !important;
-}
-.stButton > button {
-    background-color: #198754 !important;
-    color: white !important;
-}
-</style>
-"""
+# --- 3. گروک اے پی آئی کی حاصل کرنا ---
+MY_GROQ_KEY = None
+try:
+    if "GROQ_API_KEY" in st.secrets:
+        MY_GROQ_KEY = st.secrets["GROQ_API_KEY"]
+except Exception:
+    pass
 
-st.markdown(theme_css, unsafe_allow_html=True)
+if not MY_GROQ_KEY:
+    MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
+
+# --- 4. سیشن سٹیٹ ---
+if "last_answer" not in st.session_state:
+    st.session_state.last_answer = None
+if "total_questions" not in st.session_state:
+    st.session_state.total_questions = 0
+if "quiz_score" not in st.session_state:
+    st.session_state.quiz_score = 0
+if "quiz_total" not in st.session_state:
+    st.session_state.quiz_total = 0
 
 # --- 🎯 مددگار فنکشنز ---
 def remove_foreign_characters(text):
@@ -144,6 +122,20 @@ with st.sidebar:
     st.caption("Urdu Learning & Assessment Assistant")
     st.divider()
     
+    st.subheader("🎨 تھیم اور نیٹ ورک سیٹ اپ")
+    alkhidmat_theme = st.toggle("🟢 الخدمت برانڈنگ تھیم (Green/Blue)", value=True)
+    low_bandwidth = st.toggle("⚡ لو بینڈوڈتھ / دیہاتی موڈ (2G Mode)", value=False)
+    
+    if alkhidmat_theme:
+        st.markdown("""
+        <style>
+        .stApp { background-color: #f4f9f5; }
+        h1, h2, h3 { color: #0d6efd !important; }
+        .stButton > button { background-color: #198754 !important; color: white !important; }
+        </style>
+        """, unsafe_allow_html=True)
+
+    st.divider()
     st.subheader("🏛️ 1️⃣ تعلیمی بورڈ کی سلیکشن (Board)")
     selected_board = st.selectbox(
         "اپنا تعلیمی بورڈ منتخب کریں:",
@@ -179,7 +171,6 @@ with st.sidebar:
     )
     
     st.divider()
-    # 📊 اسٹوڈنٹ پرفارمنس ڈیش بورڈ
     st.subheader("📈 اسٹوڈنٹ پرفارمنس ڈیش بورڈ")
     st.metric(label="کل پوچھے گئے سوالات", value=st.session_state.total_questions)
     col_q1, col_q2 = st.columns(2)
@@ -234,11 +225,13 @@ tab_file, tab_voice = st.tabs(["📁 PDF / TXT / تصویر اپ لوڈ", "🎙�
 
 file_extracted_text = ""
 image_bytes = None
+audio_val = None
 
 with tab_file:
     uploaded_file = st.file_uploader(
-        "اپنی PDF، TXT فائل یا سوال/فارمولا/نوٹس کی تصویر اپ لوڈ کریں:", 
-        type=['pdf', 'txt', 'png', 'jpg', 'jpeg']
+        "", 
+        type=['pdf', 'txt', 'png', 'jpg', 'jpeg'],
+        label_visibility="collapsed"
     )
     if uploaded_file is not None:
         if uploaded_file.name.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -253,8 +246,8 @@ with tab_file:
 
 with tab_voice:
     audio_val = st.audio_input("مائیک پر کلک کر کے اپنا سوال اردو میں بولیں:")
-    if audio_val:
-        st.info("صوتی ان پٹ موصول ہو گیا ہے! AI پروسیسنگ کے لیے تیار ہے۔")
+    if audio_val is not None:
+        st.success("🎤 صوتی ان پٹ موصول ہو گیا ہے! اب نیچے 'جواب حاصل کریں' کا بٹن دبائیں۔")
 
 # --- ان پٹ باکس ---
 user_input = st.text_area(
@@ -328,11 +321,16 @@ def fetch_ai_response(prompt_text, img_data=None):
 # --- 🚀 مرکزی جواب حاصل کرنے کا بٹن ---
 if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width=True, type="primary"):
     clean_input_text = user_input.strip()
-    if not clean_input_text and not image_bytes and not audio_val:
+    
+    if not clean_input_text and image_bytes is None and audio_val is None:
         st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر/آواز اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI جواب تیار کر رہا ہے...'):
-            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{user_input}"
+            final_query = clean_input_text
+            if not final_query and audio_val is not None:
+                final_query = "صارف نے وائس ان پٹ بھیجا ہے۔ برائے مہربانی تعلیمی رہنمائی فراہم کریں۔"
+                
+            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{final_query}"
             ans = fetch_ai_response(main_prompt, image_bytes)
             if ans:
                 st.session_state.last_answer = ans
