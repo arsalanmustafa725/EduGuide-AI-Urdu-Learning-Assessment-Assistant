@@ -8,6 +8,9 @@ import io
 import PyPDF2
 from PIL import Image
 import base64
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
@@ -26,7 +29,6 @@ if sys.stdout.encoding != 'utf-8':
 
 # --- 3. گروک اے پی آئی کی (Groq API Key) حاصل کرنا ---
 MY_GROQ_KEY = None
-
 try:
     if "GROQ_API_KEY" in st.secrets:
         MY_GROQ_KEY = st.secrets["GROQ_API_KEY"]
@@ -36,7 +38,57 @@ except Exception:
 if not MY_GROQ_KEY:
     MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
 
-# --- 🎯 غیر ملکی اور فضول حروف ہٹانے کا فنکشن ---
+# --- 4. سیشن سٹیٹ (Session State Initializations) ---
+if "last_answer" not in st.session_state:
+    st.session_state.last_answer = None
+if "total_questions" not in st.session_state:
+    st.session_state.total_questions = 0
+if "quiz_score" not in st.session_state:
+    st.session_state.quiz_score = 0
+if "quiz_total" not in st.session_state:
+    st.session_state.quiz_total = 0
+
+# --- 🎨 CSS ، اردو نستعلیق فونٹس اور الخدمت تھیم ---
+st.sidebar.subheader("🎨 تھیم اور نیٹ ورک سیٹ اپ")
+alkhidmat_theme = st.sidebar.toggle("🟢 الخدمت برانڈنگ تھیم (Green/Blue)", value=True)
+low_bandwidth = st.sidebar.toggle("⚡ لو بینڈوڈتھ / دیہاتی موڈ (2G Mode)", value=False)
+
+theme_css = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+
+html, body, [class*="css"], h1, h2, h3, h4, h5, h6, p, div, span, label {
+    font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Segoe UI', sans-serif !important;
+    direction: rtl;
+    text-align: right;
+}
+.stButton>button {
+    width: 100%;
+    border-radius: 8px;
+    font-weight: bold;
+}
+</style>
+"""
+
+if alkhidmat_theme:
+    theme_css += """
+    <style>
+    .stApp {
+        background-color: #f4f9f5;
+    }
+    h1, h2, h3 {
+        color: #0d6efd !important;
+    }
+    .stButton>button {
+        background-color: #198754 !important;
+        color: white !important;
+    }
+    </style>
+    """
+
+st.markdown(theme_css, unsafe_allow_html=True)
+
+# --- 🎯 مددگار فنکشنز ---
 def remove_foreign_characters(text):
     if not text:
         return ""
@@ -44,11 +96,9 @@ def remove_foreign_characters(text):
     cleaned_text = re.sub(pattern, '', text)
     return cleaned_text.strip()
 
-# --- 🖼️ تصویر کو Base64 میں تبدیل کرنے کا فنکشن ---
 def encode_image(image_bytes):
     return base64.b64encode(image_bytes).decode('utf-8')
 
-# --- 📄 PDF اور TXT فائل سے ٹیکسٹ نکالنے کا فنکشن ---
 def extract_text_from_file(uploaded_file):
     text = ""
     try:
@@ -64,7 +114,6 @@ def extract_text_from_file(uploaded_file):
         st.error(f"فائل پڑھنے میں مسئلہ آیا: {str(e)}")
     return text
 
-# --- 🔊 اردو ٹیکسٹ ٹو سپیچ فنکشن ---
 def generate_urdu_audio(text):
     try:
         clean_speech_text = re.sub(r'[*#\_`~]', '', text)
@@ -76,9 +125,20 @@ def generate_urdu_audio(text):
     except Exception as e:
         return None
 
-# --- 4. سیشن سٹیٹ (Session State) ---
-if "last_answer" not in st.session_state:
-    st.session_state.last_answer = None
+def create_pdf_report(text):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
+    story = [Paragraph("EduGuide AI Urdu - Educational Report", styles['Heading1']), Spacer(1, 12)]
+    clean_text = re.sub(r'[*#\_`~]', '', text)
+    for line in clean_text.split('\n'):
+        if line.strip():
+            story.append(Paragraph(line, style))
+            story.append(Spacer(1, 6))
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
 
 # --- سائڈ بار (Sidebar) ---
 with st.sidebar:
@@ -121,6 +181,17 @@ with st.sidebar:
     )
     
     st.divider()
+    # 📊 اسٹوڈنٹ پرفارمنس ڈیش بورڈ
+    st.subheader("📈 اسٹوڈنٹ پرفارمنس ڈیش بورڈ")
+    st.metric(label="کل پوچھے گئے سوالات", value=st.session_state.total_questions)
+    col_q1, col_q2 = st.columns(2)
+    col_q1.metric(label="کوئز اسکور", value=st.session_state.quiz_score)
+    col_q2.metric(label="کل کوئز", value=st.session_state.quiz_total)
+    if st.session_state.quiz_total > 0:
+        accuracy = int((st.session_state.quiz_score / st.session_state.quiz_total) * 100)
+        st.progress(accuracy / 100, text=f"کوئز ایکوریسی: {accuracy}%")
+    
+    st.divider()
     st.subheader("🤝 معاون و سرپرست")
     st.markdown("""
     * 🌟 **الخدمت فاؤنڈیشن (Alkhidmat Foundation)**
@@ -128,7 +199,6 @@ with st.sidebar:
     * ☁️ **علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026)**
     """)
     st.divider()
-    
     st.write("👤 **ڈویلپر:** ارسلان (Arsalan)")
     st.write("🎓 AI & Software Development")
 
@@ -160,25 +230,33 @@ SYSTEM_PROMPT = f"""
 st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
 st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
 
-# --- 📁 فائل اور تصویر اپ لوڈر ---
-st.subheader("📄 فائل یا تصویر اپ لوڈ کریں (اختیاری):")
-uploaded_file = st.file_uploader(
-    "اپنی PDF، TXT فائل یا سوال/فارمولا/نوٹس کی تصویر اپ لوڈ کریں:", 
-    type=['pdf', 'txt', 'png', 'jpg', 'jpeg']
-)
+# --- 📁 فائل، تصویر اور وائس ان پٹ ---
+st.subheader("📄 فائل، تصویر یا وائس ان پٹ (اختیاری):")
+tab_file, tab_voice = st.tabs(["📁 PDF / TXT / تصویر اپ لوڈ", "🎙️ اردو صوتی سوال (Voice Query)"])
 
 file_extracted_text = ""
 image_bytes = None
 
-if uploaded_file is not None:
-    if uploaded_file.name.lower().endswith(('.png', '.jpg', '.jpeg')):
-        image_bytes = uploaded_file.read()
-        st.image(uploaded_file, caption="اپ لوڈ کی گئی تصویر", width=350)
-        st.success("تصویر کامیابی سے اپ لوڈ ہو گئی ہے!")
-    else:
-        file_extracted_text = extract_text_from_file(uploaded_file)
-        if file_extracted_text:
-            st.success(f"فائل '{uploaded_file.name}' کامیابی سے پڑھ لی گئی ہے!")
+with tab_file:
+    uploaded_file = st.file_uploader(
+        "اپنی PDF، TXT فائل یا سوال/فارمولا/نوٹس کی تصویر اپ لوڈ کریں:", 
+        type=['pdf', 'txt', 'png', 'jpg', 'jpeg']
+    )
+    if uploaded_file is not None:
+        if uploaded_file.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            image_bytes = uploaded_file.read()
+            if not low_bandwidth:
+                st.image(uploaded_file, caption="اپ لوڈ کی گئی تصویر", width=350)
+            st.success("تصویر کامیابی سے اپ لوڈ ہو گئی ہے!")
+        else:
+            file_extracted_text = extract_text_from_file(uploaded_file)
+            if file_extracted_text:
+                st.success(f"فائل '{uploaded_file.name}' کامیابی سے پڑھ لی گئی ہے!")
+
+with tab_voice:
+    audio_val = st.audio_input("مائیک پر کلک کر کے اپنا سوال اردو میں بولیں:")
+    if audio_val:
+        st.info("صوتی ان پٹ موصول ہو گیا ہے! AI پروسیسنگ کے لیے تیار ہے۔")
 
 # --- ان پٹ باکس ---
 user_input = st.text_area(
@@ -198,7 +276,7 @@ def fetch_ai_response(prompt_text, img_data=None):
     text_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
     
     try:
-        if img_data:
+        if img_data and not low_bandwidth:
             vision_models = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
             for v_model in vision_models:
                 try:
@@ -252,29 +330,29 @@ def fetch_ai_response(prompt_text, img_data=None):
 # --- 🚀 مرکزی جواب حاصل کرنے کا بٹن ---
 if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width=True, type="primary"):
     clean_input_text = user_input.strip()
-    if not clean_input_text and not image_bytes:
-        st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر اپ لوڈ کریں!")
+    if not clean_input_text and not image_bytes and not audio_val:
+        st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر/آواز اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI جواب تیار کر رہا ہے...'):
             main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{user_input}"
             ans = fetch_ai_response(main_prompt, image_bytes)
             if ans:
                 st.session_state.last_answer = ans
+                st.session_state.total_questions += 1
 
-# --- 📋 جواب اور ایجوکیشنل ٹولز کا ڈسپلے ---
+# --- 📋 جواب اور ایجوکیشنل AI ٹولز کا ڈسپلے ---
 if st.session_state.last_answer:
     st.divider()
     st.subheader("📋 EduGuide AI کا تعلیمی جواب:")
     st.markdown(st.session_state.last_answer)
     
-    # اگر عدم مطابقت کا پیغام نہ ہو صرف تب ایجوکیشنل ٹولز اور آپشنز دکھائیں
     if "مضمون میں عدم مطابقت" not in st.session_state.last_answer:
         st.divider()
         st.subheader("🎓 اس جواب پر مزید ایجوکیشنل AI ٹولز استعمال کریں:")
-        st.caption("مندرجہ بالا جواب کو مزید بہتر بنانے یا پروسیس کرنے کے لیے نیچے دیے گئے بٹنز پر کلک کریں:")
         
         row1_col1, row1_col2, row1_col3 = st.columns(3)
         row2_col1, row2_col2, row2_col3 = st.columns(3)
+        row3_col1, row3_col2 = st.columns(2)
         
         tool_prompt = None
         
@@ -302,7 +380,14 @@ if st.session_state.last_answer:
             if st.button("🔤 6. اہم تکنیکی الفاظ کی لغت", use_container_width=True):
                 tool_prompt = f"برائے مہربانی اس جواب میں آنے والی تمام مشکل انگریزی و سائنس کی اصطلاحات کی ایک علیحدہ اردو لغت (Glossary) بمعہ تشریح بنائیں:\n\n{st.session_state.last_answer}"
         
-        # اگر کسی ایجوکیشنل ٹول کا بٹن دبایا جائے
+        with row3_col1:
+            if st.button("📜 7. پاسٹ پیپرز اینالیٹکس (Past Papers Focus)", use_container_width=True):
+                tool_prompt = f"برائے مہربانی {selected_board} کے گزشتہ 5 سالہ پاسٹ پیپرز کے رجحانات کا تجزیہ کریں اور بتائیں کہ اس ٹاپک سے کون سے سوالات بار بار آئے ہیں:\n\n{st.session_state.last_answer}"
+
+        with row3_col2:
+            if st.button("🎮 8. فارم بائیٹ کوئز گیم (Gamified Quiz Mode)", use_container_width=True):
+                tool_prompt = f"اس جواب کی بنیاد پر ایک 3 سوالات کا انٹرایکٹو اردو کوئز تیار کریں جس میں ہر سوال کے 4 اختیارات واضح لکھے ہوں اور آخر میں جواب کی کنجی (Answer Key) بھی دی گئی ہو:\n\n{st.session_state.last_answer}"
+
         if tool_prompt:
             with st.spinner('EduGuide AI منتخب کردہ ٹول کا پروسیس چلا رہا ہے...'):
                 processed_ans = fetch_ai_response(tool_prompt, image_bytes)
@@ -310,11 +395,28 @@ if st.session_state.last_answer:
                     st.session_state.last_answer = processed_ans
                     st.rerun()
 
-    # --- 🚀 اضافی ٹولز (Audio, Download, Copy) ---
+    # --- 🎮 انٹرایکٹو گیم کوئز ویجیٹ ---
+    st.divider()
+    st.subheader("🎮 لائیو انٹرایکٹو کوئز پریکٹس:")
+    quiz_opt = st.radio("پریکٹس سوال: آپریٹنگ سسٹم کا بنیادی کام کیا ہے؟", [
+        "1) صرف گیمز چلانا",
+        "2) ہارسٹ ویئر اور سافٹ ویئر کے درمیان رابطہ قائم کرنا",
+        "3) ویڈیو ایڈٹ کرنا",
+        "4) پرنٹر میں روشنائی بھرنا"
+    ])
+    if st.button("کوئز جواب جمع کروائیں"):
+        st.session_state.quiz_total += 1
+        if "2)" in quiz_opt:
+            st.success("🎉 بالکل درست جواب! آپ کو +1 پوائنٹ مل گیا۔")
+            st.session_state.quiz_score += 1
+        else:
+            st.error("❌ غلط جواب! صحیح جواب 'ہارڈ ویئر اور سافٹ ویئر کے درمیان رابطہ قائم کرنا' ہے۔")
+
+    # --- 🚀 اضافی ٹولز (Audio, Download, Copy, PDF Export) ---
     st.divider()
     st.subheader("🛠️ اضافی ٹولز (Extra Features):")
     
-    feat_col1, feat_col2 = st.columns(2)
+    feat_col1, feat_col2, feat_col3 = st.columns(3)
     
     with feat_col1:
         st.markdown("##### 🔊 جواب آڈیو میں سنیں:")
@@ -325,15 +427,26 @@ if st.session_state.last_answer:
             st.info("آڈیو جنریٹ نہیں ہو سکی۔")
     
     with feat_col2:
-        st.markdown("##### 📥 نتیجہ ڈاؤن لوڈ کریں:")
+        st.markdown("##### 📥 ٹیکسٹ ڈاؤن لوڈ:")
         st.download_button(
-            label="📄 جواب ٹیکسٹ فائل (.txt) میں ڈاؤن لوڈ کریں",
+            label="📄 جواب (.txt) ڈاؤن لوڈ کریں",
             data=st.session_state.last_answer,
             file_name="EduGuide_AI_Response.txt",
             mime="text/plain",
             use_container_width=True
         )
     
+    with feat_col3:
+        st.markdown("##### 📄 PDF پورٹل ایکسپورٹ:")
+        pdf_file = create_pdf_report(st.session_state.last_answer)
+        st.download_button(
+            label="📕 PDF رپورٹ ڈاؤن لوڈ کریں",
+            data=pdf_file,
+            file_name="EduGuide_AI_Report.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+
     st.markdown("##### 📋 متن کاپی کرنے کے لیے نیچے دیے گئے باکس کے اوپر Copy آئیکن پر کلک کریں:")
     st.code(st.session_state.last_answer, language=None)
 
