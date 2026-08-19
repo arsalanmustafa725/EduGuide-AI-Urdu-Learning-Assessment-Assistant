@@ -114,6 +114,8 @@ if "quiz_score" not in st.session_state:
     st.session_state.quiz_score = 0
 if "quiz_total" not in st.session_state:
     st.session_state.quiz_total = 0
+if "voice_text" not in st.session_state:
+    st.session_state.voice_text = ""
 
 # --- 🎯 مددگار فنکشنز ---
 def remove_foreign_characters(text):
@@ -166,6 +168,23 @@ def create_pdf_report(text):
     doc.build(story)
     buffer.seek(0)
     return buffer
+
+def transcribe_urdu_audio(audio_bytes):
+    """Groq Whisper API کے ذریعے اردو آواز کو متن میں بدلنے کا فنکشن"""
+    try:
+        client = Groq(api_key=MY_GROQ_KEY)
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = "input_voice.wav"
+        
+        transcription = client.audio.transcriptions.create(
+            file=(audio_file.name, audio_file.read()),
+            model="whisper-large-v3-turbo",
+            language="ur"
+        )
+        return transcription.text
+    except Exception as e:
+        st.error(f"آواز پروسیسنگ میں مسئلہ آیا: {str(e)}")
+        return None
 
 # --- سائڈ بار (Sidebar) ---
 with st.sidebar:
@@ -276,7 +295,6 @@ tab_file, tab_voice = st.tabs(["📁 PDF / TXT / تصویر اپ لوڈ", "🎙�
 
 file_extracted_text = ""
 image_bytes = None
-audio_val = None
 
 with tab_file:
     uploaded_file = st.file_uploader(
@@ -298,12 +316,27 @@ with tab_file:
 with tab_voice:
     audio_val = st.audio_input("مائیک پر کلک کر کے اپنا سوال اردو میں بولیں:")
     if audio_val is not None:
-        st.success("🎤 صوتی ان پٹ موصول ہو گیا ہے! اب نیچے 'جواب حاصل کریں' کا بٹن دبائیں۔")
+        st.info("🎤 آپ کی آواز ریکارڈ ہو چکی ہے! نیچے دیے گئے بٹن پر کلک کریں۔")
+        if st.button("🎙️ صوتی سوال پروسیس کریں اور جواب حاصل کریں", type="primary", use_container_width=True):
+            with st.spinner("EduGuide AI آپ کی آواز سن کر متن میں بدل رہا ہے..."):
+                recognized_text = transcribe_urdu_audio(audio_val.read())
+                if recognized_text:
+                    st.session_state.voice_text = recognized_text
+                    st.success(f"🗣️ آپ کی ریکارڈ شدہ آواز: **\"{recognized_text}\"**")
+                    
+                    with st.spinner("جواب تیار کیا جا رہا ہے..."):
+                        main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل صوتی سوال کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{recognized_text}"
+                        ans = fetch_ai_response(main_prompt)
+                        if ans:
+                            st.session_state.last_answer = ans
+                            st.session_state.total_questions += 1
+                            st.rerun()
 
 # --- ان پٹ باکس ---
+default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
 user_input = st.text_area(
     "اپنا تعلیمی سوال، ٹاپک یا ہدایت یہاں درج کریں:", 
-    value=file_extracted_text if file_extracted_text else "",
+    value=default_text,
     height=140,
     placeholder="یہاں اپنا سوال، ریاضی کا فارمولا، یا نوٹس درج کریں..."
 )
@@ -373,15 +406,11 @@ def fetch_ai_response(prompt_text, img_data=None):
 if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width=True, type="primary"):
     clean_input_text = user_input.strip()
     
-    if not clean_input_text and image_bytes is None and audio_val is None:
+    if not clean_input_text and image_bytes is None:
         st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر/آواز اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI جواب تیار کر رہا ہے...'):
-            final_query = clean_input_text
-            if not final_query and audio_val is not None:
-                final_query = "صارف نے صوتی پیغام موصول کروایا ہے۔ برائے مہربانی اس تعلیمی موضوع پر سلیس اردو میں رہنمائی فراہم کریں۔"
-                
-            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{final_query}"
+            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{clean_input_text}"
             ans = fetch_ai_response(main_prompt, image_bytes)
             if ans:
                 st.session_state.last_answer = ans
