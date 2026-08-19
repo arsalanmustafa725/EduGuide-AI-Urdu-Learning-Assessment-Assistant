@@ -27,7 +27,7 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس (فکسڈ) ---
+# --- 🎨 CSS اور اردو فونٹس ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
