@@ -40,7 +40,6 @@ if not MY_GROQ_KEY:
 def remove_foreign_characters(text):
     if not text:
         return ""
-    # چینی، ہندی، اور دیگر غیر متعلقہ غیر ملکی سیمبلز کو ہٹانا
     pattern = r'[\u4e00-\u9fff\u3400-\u4dbf\u0900-\u097f]+'
     cleaned_text = re.sub(pattern, '', text)
     return cleaned_text.strip()
@@ -101,7 +100,19 @@ with st.sidebar:
         ]
     )
     
-    st.subheader("📊 2️⃣ سطح کا انتخاب (Difficulty)")
+    st.subheader("🏛️ 2️⃣ تعلیمی بورڈ کا انتخاب (Board)")
+    selected_board = st.selectbox(
+        "اپنا تعلیمی بورڈ منتخب کریں:",
+        [
+            "سندھ بورڈ (BIEK / BSEK)",
+            "پنجاب بورڈ (BISE)",
+            "فیڈرل بورڈ (FBISE)",
+            "آغا خان بورڈ (AKU-EB)",
+            "O/A Levels (Cambridge)"
+        ]
+    )
+    
+    st.subheader("📊 3️⃣ سطح کا انتخاب (Difficulty)")
     selected_level = st.select_slider(
         "لیول منتخب کریں:",
         options=["ابتدائی (Primary/Middle)", "میٹرک / انٹرمیڈیٹ (High School)", "یونیورسٹی / ایڈوانسڈ (Undergrad)"],
@@ -114,9 +125,11 @@ with st.sidebar:
     1. **پی ڈی ایف، ٹیکسٹ اور امیج پروسیسنگ** 📄🖼️
     2. **سخت مضمون کی تصدیق (Subject Validation)** 🛑
     3. **اردو آواز سے سننا (Text-to-Speech)** 🔊
-    4. **تکنیکی الفاظ کی لغت (Vocabulary)** 🔤
-    5. **امتحانی سوالات جنریٹر** ❓
-    6. **آسان اردو میں تبدیلی بٹن** ⚡
+    4. **AI اسٹڈی و ایگزام پلانر** 📅
+    5. **خودکار امتحانی پیپر جنریٹر** 📝
+    6. **میتھ و سائنس سٹیپ بائی سٹیپ سولور** 📐
+    7. **ہنٹ و سیلف کریکشن سسٹم** 💡
+    8. **تکنیکی الفاظ کی لغت (Glossary)** 🔤
     """)
     st.divider()
     
@@ -128,7 +141,7 @@ with st.sidebar:
     """)
     st.divider()
     
-    st.write("👤 **ڈویلپر:** ارسلان (Arsalan)")
+    st.write("👤 **ڈویلپر:** ارسلان مصطفیٰ (Arsalan Mustafa)")
     st.write("🎓 AI & Software Development")
 
 # --- dynamic SYSTEM PROMPT (سخت ترین ہدایات کے ساتھ) ---
@@ -137,25 +150,83 @@ SYSTEM_PROMPT = f"""
 یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
 
 موجودہ سیشن کا منتخب کردہ مضمون: "{selected_subject}"
+موجودہ سیشن کا منتخب کردہ بورڈ: "{selected_board}"
 موجودہ سیشن کا منتخب کردہ تعلیمی لیول: "{selected_level}"
 
 🛑 **سخت ترین مضمون کی وریفیکیشن کے قواعد (STRICT SUBJECT MATCH RULE):**
 1. اگر منتخب کردہ مضمون 'عمومی / دیگر (General)' کے علاوہ کوئی مخصوص مضمون ہے (مثلاً فزکس، کیمسٹری، کمپیوٹر سائنس، بائیولوجی، ریاضی وغیرہ)، تو سب سے پہلے صارف کے دیے گئے متن/سوال/تصویر کی جانچ کرو۔
-2. اگر صارف کا سوال چنے گئے مضمون سے تعلق **نہیں** رکھتا (مثال کے طور پر ڈراپ ڈاؤن میں '{selected_subject}' منتخب ہے لیکن سوال کسی دوسرے مضمون جیسے کمپیوٹر، کیمسٹری، یا جنرل باتوں کا ہے)، تو تم **ہرگز سوال کا جواب نہیں دو گے**۔
+2. اگر صارف کا سوال چنے گئے مضمون سے تعلق **نہیں** رکھتا (مثال کے طور پر ڈراپ ڈاؤن میں '{selected_subject}' منتخب ہے لیکن سوال کسی دوسرے مضمون کا ہے)، تو تم **ہرگز سوال کا جواب نہیں دو گے**۔
 3. عدم مطابقت (Mismatch) کی صورت میں تم صرف اور صرف یہ معذرت خواہی کا پیغام دو گے:
    "⚠️ **مضمون میں عدم مطابقت (Subject Mismatch)!**
    آپ نے سائڈ بار میں ڈراپ ڈاؤن سے '**{selected_subject}**' منتخب کیا ہے، جبکہ آپ کا سوال کسی اور مضمون سے متعلق محسوس ہو رہا ہے۔ 
-   براہِ کرم سائڈ بار سے صحیح مضمون (مثلاً کمپیوٹر، فزکس، کیمسٹری وغیرہ) منتخب کریں تاکہ آپ کو درست اور صحیح تعلیمی جواب فراہم کیا جا سکے۔"
+   براہِ کرم سائڈ بار سے صحیح مضمون منتخب کریں تاکہ آپ کو درست اور صحیح تعلیمی جواب فراہم کیا جا سکے۔"
 
 📜 **سخت ترین تحریری و زبان کے قواعد (STRICT LANGUAGE RULES):**
 1. تمام جوابات **صرف اور صرف خالص اور سلیس اردو رسم الخط (Urdu Script)** میں ہونے چاہئیں۔
-2. چینی، ہندی، جاپانی یا کسی بھی غیر متعلقہ غیر ملکی زبان کے حروف کا استعمال سخت منع اور گناہِ کبیرہ ہے۔
-3. اگر تصویر میں سوال یا نوٹس دیے گئے ہیں تو پہلے اس سوال کا تجزیہ کرو اور پھر سلیس اردو میں جواب فراہم کرو۔
-4. جواب میں کوئی اضافی، فضول یا غیر متعلقہ جملے شامل نہ کرو۔ صرف اور صرف مطلوبہ تعلیمی مواد دو۔
-5. اگر سوال چنے گئے مضمون سے مطابقت رکھتا ہو:
-   - کوئز (MCQs) کی صورت میں 4 اختیارات (الف، ب، ج، د)، **درست جواب** اور **مختصر اردو وضاحت** لازمی لکھیں۔
-   - ہر صحیح جواب کے آخر میں 3 سے 5 اہم تکنیکی انگریزی الفاظ اور ان کا اردو ترجمہ **"🔤 اہم تکنیکی الفاظ (Glossary)"** کی ہیڈنگ کے ساتھ لازمی بنائیں۔
+2. چینی، ہندی، جاپانی یا کسی بھی غیر متعلقہ غیر ملکی زبان کے حروف کا استعمال سخت منع ہے۔
+3. اگر تصویر/متن میں ریاضی، فزکس یا کیمسٹری کا سوال ہے تو ہر مرحلے (Step-by-Step) کی آسان اردو میں وضاحت فراہم کرو۔
+4. جواب کے آخر میں 3 سے 5 اہم تکنیکی الفاظ کا اردو ترجمہ **"🔤 اہم تکنیکی الفاظ (Glossary)"** کے نام سے لازمی بنائیں۔
 """
+
+# --- AI کال کرنے کا فنکشن ---
+def fetch_ai_response(prompt_text, img_data=None):
+    if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
+        st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
+        return None
+    
+    client = Groq(api_key=MY_GROQ_KEY)
+    text_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    
+    try:
+        if img_data:
+            vision_models = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
+            for v_model in vision_models:
+                try:
+                    base64_img = encode_image(img_data)
+                    messages = [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt_text},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}
+                                }
+                            ]
+                        }
+                    ]
+                    res = client.chat.completions.create(
+                        model=v_model,
+                        messages=messages,
+                        temperature=0.1
+                    )
+                    raw_answer = res.choices[0].message.content
+                    return remove_foreign_characters(raw_answer)
+                except Exception:
+                    continue
+            st.error("تصویر پروسیس کرنے والا ماڈل اس وقت دستیاب نہیں ہے، صرف متن بھیجیں۔")
+            return None
+        else:
+            for model_name in text_models:
+                try:
+                    res = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": prompt_text}
+                        ],
+                        temperature=0.1
+                    )
+                    raw_answer = res.choices[0].message.content
+                    return remove_foreign_characters(raw_answer)
+                except Exception:
+                    continue
+            st.error("معذرت! تمام AI ماڈلز مصروف ہیں۔ کچھ دیر بعد کوشش کریں۔")
+            return None
+    except Exception as e:
+        st.error(f"API کی کا مسئلہ ہے: {str(e)}")
+        return None
 
 # --- مین انٹرفیس ---
 st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
@@ -186,97 +257,80 @@ if uploaded_file is not None:
 user_input = st.text_area(
     "اپنا تعلیمی سوال، مضمون یا متن یہاں درج کریں (یا تصویر/فائل کے ساتھ اضافی ہدایت لکھیں):", 
     value=file_extracted_text if file_extracted_text else "",
-    height=180,
+    height=150,
     placeholder="یہاں اپنا سوال درج کریں یا تصویر/فائل کا انتخاب کریں..."
 )
 
-# --- ایکشن بٹنز ---
-st.subheader("🎯 منتخب کریں کہ AI کیا کرے:")
-act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+# --- 🎯 اہم تعلیمی فیچرز کا ٹیب سسٹم (Tabs Layout) ---
+st.subheader("🎯 AI تعلیمی ٹولز (Educational Tools):")
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🔍 عام وضاحت و کوئز", 
+    "📅 AI اسٹڈی پلانر", 
+    "📝 خودکار پیپر جنریٹر", 
+    "📐 میتھ و سائنس سولور", 
+    "💡 ہنٹ و سیلف کریکشن"
+])
 
 action_prompt = None
 
-with act_col1:
-    if st.button("🔍 آسان اردو میں وضاحت کریں", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر یا سوال کی آسان اور سلیس اردو میں تفصیلی وضاحت کریں:\n\n{user_input}"
+# --- Tab 1: بنیادی ایکشنز ---
+with tab1:
+    act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+    with act_col1:
+        if st.button("🔍 آسان اردو میں وضاحت کریں", use_container_width=True):
+            action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر یا سوال کی آسان اور سلیس اردو میں تفصیلی وضاحت کریں:\n\n{user_input}"
+    with act_col2:
+        if st.button("📝 مختصر اردو خلاصہ بنائیں", use_container_width=True):
+            action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر کا اہم نکات پر مشتمل مختصر اور جامع اردو خلاصہ بنائیں:\n\n{user_input}"
+    with act_col3:
+        if st.button("🧠 اردو MCQ کوئز بنائیں", use_container_width=True):
+            action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر/ٹاپک کی بنیاد پر 4 کثیر الانتخابی سوالات (MCQs) بنائیں، اختیارات دیں اور ہر سوال کے نیچے درست جواب اور مختصر اردو وضاحت بھی درج کریں:\n\n{user_input}"
+    with act_col4:
+        if st.button("❓ اہم امتحانی سوالات جنریٹ کریں", use_container_width=True):
+            action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر/ٹاپک کی بنیاد پر 3 مختصر امتحانی سوالات اور 2 تفصیلی سوالات ماڈل اردو جوابات کے ساتھ تیار کریں:\n\n{user_input}"
 
-with act_col2:
-    if st.button("📝 مختصر اردو خلاصہ بنائیں", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر کا اہم نکات پر مشتمل مختصر اور جامع اردو خلاصہ بنائیں:\n\n{user_input}"
-
-with act_col3:
-    if st.button("🧠 اردو MCQ کوئز بنائیں", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر/ٹاپک کی بنیاد پر 4 کثیر الانتخابی سوالات (MCQs) بنائیں، اختیارات دیں اور ہر سوال کے نیچے درست جواب اور مختصر اردو وضاحت بھی درج کریں:\n\n{user_input}"
-
-with act_col4:
-    if st.button("❓ اہم امتحانی سوالات جنریٹ کریں", use_container_width=True):
-        action_prompt = f"برائے مہربانی مندرجہ ذیل متن/تصویر/ٹاپک کی بنیاد پر 3 مختصر امتحانی سوالات (Short Questions) اور 2 تفصیلی سوالات (Long Questions) ان کے ماڈل اردو جوابات کے ساتھ تیار کریں:\n\n{user_input}"
-
-# --- AI کال کرنے کا فنکشن (Text & Vision Support + Model Fallback) ---
-def fetch_ai_response(prompt_text, img_data=None):
-    if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
-        st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
-        return None
+# --- Tab 2: 2️⃣ AI اسٹڈی اور ایگزام پلانر ---
+with tab2:
+    st.markdown("##### 📅 AI اسٹڈی اور ایگزام پلانر (Smart Study Planner)")
+    plan_col1, plan_col2 = st.columns(2)
+    with plan_col1:
+        days = st.number_input("امتحان میں باقی دن:", min_value=1, max_value=90, value=15)
+    with plan_col2:
+        weak_topics = st.text_input("کمزور ٹاپکس (اگر کوئی ہیں):", placeholder="مثال: Dynamic Memory Allocation, Thermodynamics")
     
-    client = Groq(api_key=MY_GROQ_KEY)
-    
-    try:
-        if img_data:
-            # 🖼️ تصویر کے لیے Vision Model
-            base64_img = encode_image(img_data)
-            messages = [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt_text},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}
-                        }
-                    ]
-                }
-            ]
-            res = client.chat.completions.create(
-                model="llama-3.2-11b-vision-preview",
-                messages=messages,
-                temperature=0.1
-            )
-            raw_answer = res.choices[0].message.content
-            return remove_foreign_characters(raw_answer)
-        else:
-            # 📝 محض ٹیکسٹ کے لیے Llama 3.3 / Llama 3 Fallback
-            models_to_try = ["llama-3.3-70b-versatile", "llama3-8b-8192"]
-            for model_name in models_to_try:
-                try:
-                    res = client.chat.completions.create(
-                        model=model_name,
-                        messages=[
-                            {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": prompt_text}
-                        ],
-                        temperature=0.1
-                    )
-                    raw_answer = res.choices[0].message.content
-                    return remove_foreign_characters(raw_answer)
-                except Exception as e:
-                    if "rate_limit" in str(e).lower():
-                        continue
-                    else:
-                        st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
-                        return None
-            st.error("معذرت! تمام AI ماڈلز کی روزانہ کی لمٹ ختم ہو چکی ہے۔ کچھ دیر بعد کوشش کریں یا نئی API Key استعمال کریں۔")
-            return None
-            
-    except Exception as e:
-        st.error(f"کنیکشن یا API کا مسئلہ ہے۔ تفصیل: {str(e)}")
-        return None
+    if st.button("📅 روزانہ کا ٹائم ٹیبل بنائیں", use_container_width=True):
+        action_prompt = f"طالب علم کے پاس {selected_subject} کا امتحان کی تیاری کے لیے کل {days} دن باقی ہیں۔ اس کے کمزور ٹاپکس یہ ہیں: {weak_topics}۔ براؤ کرم {selected_board} کے نصاب کے مطابق اس کے لیے روزانہ کا مکمل شیڈول اور تیاری کا روڈ میپ سلیس اردو میں تیار کریں۔\n\nاضافی متن: {user_input}"
+
+# --- Tab 3: 3️⃣ خودکار امتحانی پیپر جنریٹر ---
+with tab3:
+    st.markdown("##### 📝 خودکار امتحانی پیپر جنریٹر (Mock Exam Generator)")
+    if st.button("📄 مکمل ماڈل امتحانی پیپر جنریٹ کریں", use_container_width=True):
+        action_prompt = f"برائے مہربانی {selected_board} اور {selected_level} کے پیٹرن پر {selected_subject} کا ایک مکمل ماڈل پیپر تیار کریں۔ اس میں شامل کریں:\n1. 10 کثیر الانتخابی سوالات (MCQs)\n2. 5 مختصر امتحانی سوالات (Short Questions)\n3. 2 تفصیلی سوالات (Long Questions)\nتمام سوالات کے جوابات اور وریفکیشن سلیس اردو میں فراہم کریں۔\n\nٹاپک/متن: {user_input}"
+
+# --- Tab 4: 4️⃣ فارمولا اور ڈایاگرام ایکسپلاینر ---
+with tab4:
+    st.markdown("##### 📐 میتھ و سائنس سٹیپ بائی سٹیپ سولور (Math & Science Solver)")
+    if st.button("🧩 فارمولا اور مساوات مرحلہ وار حل کریں", use_container_width=True):
+        action_prompt = f"برائے مہربانی درج ذیل ریاضی، فزکس یا سائنس کے فارمولے/مساوات/تصویر کا سٹیپ بائی سٹیپ (Step-by-Step) حل اور ہر قدم کی سلیس اردو میں وضاحت فراہم کریں:\n\n{user_input}"
+
+# --- Tab 5: 5️⃣ غلط جواب کی خودکار اصلاح و ہنٹ ---
+with tab5:
+    st.markdown("##### 💡 ہنٹ و اشارہ لیں (Self-Correction & Hint System)")
+    student_ans = st.text_input("اپنا غلط یا نامکمل جواب یہاں درج کریں:")
+    if st.button("💡 اشارہ (Hint) حاصل کریں", use_container_width=True):
+        action_prompt = f"طالب علم کا سوال: {user_input}\nطالب علم کا جواب: {student_ans}\nبراہِ کرم فوراً صحیح جواب نہ بتائیں، بلکہ طالب علم کو ایک چھوٹا سا اشارہ (Hint) دیں اور اس کی غلطی کی نشاندہی سلیس اردو میں کریں تاکہ وہ خود درست جواب تک پہنچ سکے۔"
+
+# --- 6️⃣ اردو اصطلاحات کی لغت (Glossary Tool) ---
+st.divider()
+if st.button("🔤 صرف اردو اصطلاحات کی لغت (Urdu Glossary) جنریٹ کریں", use_container_width=True):
+    action_prompt = f"برائے مہربانی مندرجہ ذیل متن/ٹاپک میں سے تمام اہم انگریزی تعلیمی اور تکنیکی الفاظ کا انتخاب کریں اور ان کا سلیس اردو ترجمہ اور آسان مثالوں پر مشتمل ایک 'Interactive Urdu Glossary Table' بنائیں:\n\n{user_input}"
 
 # --- پراسیسنگ اور AI رسپانس ---
 if action_prompt:
     clean_input_text = user_input.strip()
-    if not clean_input_text and not image_bytes:
-        st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر اپ لوڈ کریں!")
+    if not clean_input_text and not image_bytes and "روزانہ کا ٹائم ٹیبل" not in action_prompt and "مکمل ماڈل امتحانی پیپر" not in action_prompt:
+        st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال/ٹاپک درج کریں یا کوئی فائل/تصویر اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI Urdu جواب تیار کر رہا ہے...'):
             ans = fetch_ai_response(action_prompt, image_bytes)
@@ -289,7 +343,6 @@ if st.session_state.last_answer:
     st.subheader("📋 EduGuide AI Urdu کا جواب:")
     st.markdown(st.session_state.last_answer)
     
-    # اگر عدم مطابقت کا پیغام نہ ہو صرف تب آسان کرنے کا بٹن دکھائیں
     if "مضمون میں عدم مطابقت" not in st.session_state.last_answer:
         st.divider()
         simp_col1, simp_col2 = st.columns([2, 1])
@@ -297,20 +350,19 @@ if st.session_state.last_answer:
             st.info("کیا یہ جواب تھوڑا مشکل محسوس ہو رہا ہے؟")
         with simp_col2:
             if st.button("🔄 اسے اور آسان اردو میں سمجھائیں", use_container_width=True):
-                simplify_prompt = f"برائے مہربانی نیچے دیے گئے جواب کو انتہائی سادہ، بچوں جیسی عام فہم اردو اور روزمرہ کی آسان مثالوں میں دوبارہ لکھیں تاکہ چھوٹی کلاس کا طالب علم بھی آسانی سے سمجھ سکے:\n\n{st.session_state.last_answer}"
+                simplify_prompt = f"برائے مہربانی نیچے دیے گئے جواب کو انتہائی سادہ، بچوں جیسی عام فہم اردو اور روزمرہ کی آسان مثالوں میں دوبارہ لکھیں:\n\n{st.session_state.last_answer}"
                 with st.spinner('جواب کو مزید آسان اردو میں تبدیل کیا جا رہا ہے...'):
                     simplified_ans = fetch_ai_response(simplify_prompt, image_bytes)
                     if simplified_ans:
                         st.session_state.last_answer = simplified_ans
                         st.rerun()
 
-    # --- 🚀 اضافی ٹولز (Audio, Download, Copy) ---
+    # --- 🚀 اضافی ٹولز ---
     st.divider()
     st.subheader("🛠️ اضافی ٹولز (Extra Features):")
     
     feat_col1, feat_col2 = st.columns(2)
     
-    # 🔊 آڈیو میں سنیں
     with feat_col1:
         st.markdown("##### 🔊 جواب آڈیو میں سنیں:")
         audio_fp = generate_urdu_audio(st.session_state.last_answer)
@@ -319,7 +371,6 @@ if st.session_state.last_answer:
         else:
             st.info("آڈیو جنریٹ نہیں ہو سکی۔")
     
-    # 📥 نتیجہ ڈاؤن لوڈ کریں
     with feat_col2:
         st.markdown("##### 📥 نتیجہ ڈاؤن لوڈ کریں:")
         st.download_button(
@@ -330,7 +381,6 @@ if st.session_state.last_answer:
             use_container_width=True
         )
     
-    # 📋 کاپی کرنے کا باکس
     st.markdown("##### 📋 متن کاپی کرنے کے لیے نیچے دیے گئے باکس کے اوپر Copy آئیکن پر کلک کریں:")
     st.code(st.session_state.last_answer, language=None)
 
