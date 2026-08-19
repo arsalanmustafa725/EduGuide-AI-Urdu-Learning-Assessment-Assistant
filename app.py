@@ -27,7 +27,7 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس ---
+# --- 🎨 CSS اور اردو فونٹس (ڈوپلیکیٹ اپ لوڈ ٹیکسٹ فکس شامل ہے) ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
@@ -39,6 +39,16 @@ html, body, [class*="css"], h1, h2, h3, h4, h5, h6, p, div, span, label {
     width: 100%;
     border-radius: 8px;
     font-weight: bold;
+}
+
+/* 🛑 ڈوپلیکیٹ uploadUpload اور اوورلیپنگ ٹیکسٹ کو مکمل غائب کرنے کی فکس */
+[data-testid="stFileUploader"] label {
+    display: none !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -229,7 +239,7 @@ audio_val = None
 
 with tab_file:
     uploaded_file = st.file_uploader(
-        "فائل اپ لوڈ کریں",
+        "اپ لوڈ کریں",
         type=['pdf', 'txt', 'png', 'jpg', 'jpeg'],
         label_visibility="collapsed"
     )
