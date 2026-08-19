@@ -27,12 +27,12 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس (فکسڈ - Overflow & Alignment) ---
+# --- 🎨 CSS اور اردو فونٹس (Custom File Uploader UI) ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
-/* اردو فونٹس صرف ہیڈنگز اور عام پیراگراف پر اپلائی کریں، بٹن اور فائل اپلوڈر پر نہیں */
+/* اردو فونٹس صرف ہیڈنگز اور متن پر اپلائی کریں */
 h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Segoe UI', sans-serif !important;
 }
@@ -43,24 +43,51 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     font-weight: bold;
 }
 
-/* 🛠️ File Uploader Fix: باکس اور بٹن کا کنٹرول */
+/* 🛠️ File Uploader Label ہٹانے کا کوڈ */
 [data-testid="stFileUploader"] label {
     display: none !important;
 }
 
+/* 📂 کارڈ نما اپ لوڈ باکس (Drag & Drop Zone) */
 [data-testid="stFileUploader"] section {
-    padding: 1rem !important;
-    min-height: 110px !important;
+    background-color: #ffffff !important;
+    border: 2px dashed #198754 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    min-height: 120px !important;
     display: flex !important;
+    flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s ease !important;
 }
 
-[data-testid="stFileUploader"] section * {
-    font-family: 'Segoe UI', sans-serif !important; /* بٹن کے اندر کا متن انگریزی فونٹ پر رکھیں تاکہ سائز نہ بگڑے */
+/* ہوور اثر (Hover Effect) */
+[data-testid="stFileUploader"] section:hover {
+    border-color: #0d6efd !important;
+    background-color: #f8f9fa !important;
+}
+
+/* 🔘 اپ لوڈ بٹن کی خوبصورت ڈیزائننگ */
+[data-testid="stFileUploader"] button {
+    background-color: #198754 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0.5rem 1.2rem !important;
+    font-family: 'Segoe UI', sans-serif !important;
+    font-weight: 600 !important;
     font-size: 14px !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
 }
 
+[data-testid="stFileUploader"] button:hover {
+    background-color: #146c43 !important;
+    color: white !important;
+}
+
+/* اضافی ڈوپلیکیٹ پیراگراف ٹیکسٹ ہٹانے کا سیٹ اپ */
 [data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"] p {
     display: none !important;
 }
