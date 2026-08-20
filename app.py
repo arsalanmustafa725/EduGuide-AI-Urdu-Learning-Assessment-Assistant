@@ -10,6 +10,7 @@ import io
 import PyPDF2
 from PIL import Image
 import base64
+import html
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -119,7 +120,7 @@ except Exception:
 if not MY_GROQ_KEY:
     MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
 
-# --- 4. سیشن سٹیٹ ---
+# --- 4. سیشن اسٹیٹ کی ترتیب ---
 if "last_answer" not in st.session_state:
     st.session_state.last_answer = None
 if "total_questions" not in st.session_state:
@@ -134,6 +135,8 @@ if "dynamic_quizzes" not in st.session_state:
     st.session_state.dynamic_quizzes = []
 if "flashcards_data" not in st.session_state:
     st.session_state.flashcards_data = []
+if "quiz_state" not in st.session_state:
+    st.session_state.quiz_state = {}
 
 # --- 🎯 مددگار فنکشنز ---
 def remove_foreign_characters(text):
@@ -172,8 +175,6 @@ def generate_urdu_audio(text):
     except Exception:
         return None
 
-import html
-
 def create_pdf_report(text):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -181,19 +182,16 @@ def create_pdf_report(text):
     style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
     story = [Paragraph("EduGuide AI Urdu - Educational Report", styles['Heading1']), Spacer(1, 12)]
     
-    # مارک ڈاؤن کریکٹرز اور ریگولر اسپیشل کریکٹرز کو کلین اور اسکیپ کریں
     clean_text = re.sub(r'[*#\_`~$]', '', text)
     
     for line in clean_text.split('\n'):
         line_clean = line.strip()
         if line_clean:
-            # ReportLab XML parser ایرر سے بچنے کے لیے HTML Escape کریں
             safe_line = html.escape(line_clean)
             try:
                 story.append(Paragraph(safe_line, style))
                 story.append(Spacer(1, 6))
             except Exception:
-                # اگر کسی لائن میں کوئی نایاب کریکٹر پارس نہ ہو سکے تو خالص ٹیکسٹ رکھیں
                 plain_safe = re.sub(r'[<>&]', '', line_clean)
                 story.append(Paragraph(plain_safe, style))
                 story.append(Spacer(1, 6))
@@ -342,8 +340,6 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
 
-    # 100% مستحکم اور فعال ماڈلز
-   # Groq کے فعال اور تیز رفتار ماڈلز
     text_models = [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
@@ -354,11 +350,11 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     last_error_msg = None
     
     try:
-     # اگر تصویر ہو تو وژن ماڈل
+        # اگر تصویر ہو تو وژن ماڈل
         if img_data and not low_bandwidth:
             vision_models = [
                 "llama-3.2-11b-vision-preview",
-                "llama-3.2-90b-text-preview"
+                "llama-3.2-90b-vision-preview"
             ]
             for v_model in vision_models:
                 try:
@@ -390,7 +386,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
             st.error(f"تصویر پروسیسنگ میں مسئلہ آیا یا ماڈل لمٹ ختم ہے۔ تفصیل: {last_error_msg}")
             return None
         
-        # اگر ٹیکسٹ سوال ہو تو فال بیک چین
+        # ٹیکسٹ سوال کے لیے فال بیک
         for model_name in text_models:
             try:
                 res = client.chat.completions.create(
@@ -405,7 +401,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
                 return remove_foreign_characters(raw_answer)
             except Exception as e:
                 last_error_msg = str(e)
-                time.sleep(1)  # ریٹ لمیٹ برسٹ سے بچنے کے لیے سیکنڈ کا وقفہ
+                time.sleep(1)
                 continue
                 
         st.error(f"تمام AI ماڈلز کی درخواستیں ناکام ہو گئیں یا لمٹ ختم ہے۔ آخری مسئلہ: {last_error_msg}")
@@ -523,6 +519,7 @@ with tab_voice:
                         st.session_state.total_questions += 1
                         st.session_state.dynamic_quizzes = []
                         st.session_state.flashcards_data = []
+                        st.session_state.quiz_state = {}
                         st.rerun()
             else:
                 st.error("آواز واضح نہیں تھی یا پروسیسنگ میں مسئلہ آیا۔ دوبارہ کوشش کریں۔")
@@ -555,6 +552,7 @@ if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width
                 st.session_state.total_questions += 1
                 st.session_state.dynamic_quizzes = []
                 st.session_state.flashcards_data = []
+                st.session_state.quiz_state = {}
 
 # --- 📋 جواب اور ایجوکیشنل AI ٹولز کا ڈسپلے ---
 if st.session_state.last_answer:
@@ -637,7 +635,7 @@ if st.session_state.last_answer:
                     </div>
                     """, unsafe_allow_html=True)
 
-        # --- ڈائنامک کوئز UI ---
+        # --- ڈائنامک کوئز UI (State-Safe Implementation) ---
         st.divider()
         st.subheader("🎯 ڈائنامک AI کوئز انجن (رئیل ٹائم اسسمنٹ)")
         if st.button("🔄 موجودہ ٹاپک سے لائیو ٹیسٹ بنائیں (Generate Dynamic Quiz)", use_container_width=True):
@@ -645,29 +643,58 @@ if st.session_state.last_answer:
                 quiz_data = generate_dynamic_quiz_data(st.session_state.last_answer)
                 if quiz_data:
                     st.session_state.dynamic_quizzes = quiz_data
+                    st.session_state.quiz_state = {}  # پرانے کوئز کی اسٹیٹ ری سیٹ
                 else:
                     st.error("کوئز تیار نہیں ہو سکا۔ دوبارہ کلک کریں۔")
 
         if st.session_state.dynamic_quizzes:
             st.markdown("##### 📝 سوالات حل کریں اور فوری رزلٹ دیکھیں:")
             for q_idx, q in enumerate(st.session_state.dynamic_quizzes):
-                st.markdown(f"**سوال {q_idx + 1}: {q.get('question')}**")
+                q_key = f"quiz_{q_idx}"
                 options = q.get('options', [])
+                correct_idx = q.get('correct_index', 0)
+                
+                # ہر سوال کے لیے پائیدار اسٹیٹ بنانا
+                if q_key not in st.session_state.quiz_state:
+                    st.session_state.quiz_state[q_key] = {
+                        "submitted": False,
+                        "is_correct": False,
+                        "selected_idx": 0
+                    }
+                
+                q_state = st.session_state.quiz_state[q_key]
+                st.markdown(f"**سوال {q_idx + 1}: {q.get('question')}**")
+                
                 user_choice = st.radio(
                     f"آپشن منتخب کریں (سوال {q_idx+1}):", 
                     options, 
+                    index=q_state["selected_idx"],
                     key=f"dyn_q_{q_idx}", 
-                    label_visibility="collapsed"
+                    label_visibility="collapsed",
+                    disabled=q_state["submitted"]
                 )
                 
-                if st.button(f"سوال {q_idx + 1} کا جواب چیک کریں", key=f"dyn_btn_{q_idx}"):
-                    correct_idx = q.get('correct_index', 0)
-                    st.session_state.quiz_total += 1
-                    if options.index(user_choice) == correct_idx:
+                if not q_state["submitted"]:
+                    if st.button(f"سوال {q_idx + 1} کا جواب چیک کریں", key=f"dyn_btn_{q_idx}"):
+                        chosen_idx = options.index(user_choice)
+                        is_correct = (chosen_idx == correct_idx)
+                        
+                        # اسٹیٹ اپ ڈیٹ کرنا
+                        q_state["submitted"] = True
+                        q_state["selected_idx"] = chosen_idx
+                        q_state["is_correct"] = is_correct
+                        
+                        st.session_state.quiz_total += 1
+                        if is_correct:
+                            st.session_state.quiz_score += 1
+                        st.rerun()
+                else:
+                    # Rerun کے بعد مستقل رزلٹ اور فیڈبیک برقرار رکھنا
+                    if q_state["is_correct"]:
                         st.success(f"🎉 بالکل درست! {q.get('explanation', '')}")
-                        st.session_state.quiz_score += 1
                     else:
-                        st.error(f"❌ غلط جواب! صحیح آپشن تھا: '{options[correct_idx]}' | وضاحت: {q.get('explanation', '')}")
+                        st.error(f"❌ غلط جواب! آپ نے '{options[q_state['selected_idx']]}' منتخب کیا۔ درست آپشن تھا: '{options[correct_idx]}' | وضاحت: {q.get('explanation', '')}")
+                
                 st.write("---")
 
     # --- 🚀 اضافی ٹولز ---
