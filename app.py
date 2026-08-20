@@ -737,7 +737,7 @@ if st.session_state.last_answer:
         if audio_fp:
             st.audio(audio_fp, format='audio/mp3')
 
-    with col_d2:
+ with col_d2:
         if "PDF" in selected_format:
             pdf_file = create_pdf_report(st.session_state.last_answer, language="English")
             st.download_button(
@@ -748,9 +748,12 @@ if st.session_state.last_answer:
                 use_container_width=True
             )
         else:
+            # اردو کے لیے RTL مارک شامل کرنا تاکہ نوٹ پیڈ میں دائیں طرف سے شو ہو
+            txt_data = "\u202B" + st.session_state.last_answer if st.session_state.language == "Urdu" else st.session_state.last_answer
+            
             st.download_button(
                 label="📥 Download .txt",
-                data=st.session_state.last_answer,
+                data=txt_data,
                 file_name="EduGuide_AI_Report.txt",
                 mime="text/plain",
                 use_container_width=True
