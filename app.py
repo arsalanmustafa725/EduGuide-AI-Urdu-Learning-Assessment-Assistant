@@ -334,9 +334,9 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
         "deepseek-r1-distill-llama-70b",
         "deepseek-r1-distill-qwen-32b",
         "mixtral-8x7b-32768",
-        "gemma2-9b-it"  
+        "gemma2-9b-it",
         "qwen/qwen-2.5-72b-instruct",
-    "meta-llama/llama-guard-3-8b"
+    "meta-llama/llama-guard-3-8b",
     ]
     
     try:
