@@ -503,29 +503,19 @@ with tab_voice:
         stop_prompt="⏹️ Stop Recording",
         key='custom_mic_recorder'
     )
-    
+
     if audio_data is not None:
         audio_bytes = audio_data['bytes']
         st.audio(audio_bytes, format='audio/wav')
         
-        with st.spinner("Processing voice input..." if active_lang == "English" else "آواز پروسیس کی جا رہی ہے..."):
+        with st.spinner("Processing voice input..." if active_lang == "English" else "آواز کو ٹیکسٹ میں بدلا جا رہا ہے..."):
             lang_code_whisper = "ur" if active_lang == "Urdu" else "en"
             recognized_text = transcribe_audio(audio_bytes, lang_code_whisper)
             
             if recognized_text:
                 st.session_state.voice_text = recognized_text
                 st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
-                
-                with st.spinner("Generating answer..." if active_lang == "English" else "جواب تیار کیا جا رہا ہے..."):
-                    main_prompt = f"Please provide a detailed answer in {active_lang} for: {recognized_text}"
-                    ans = fetch_ai_response(main_prompt)
-                    if ans:
-                        st.session_state.last_answer = ans
-                        st.session_state.total_questions += 1
-                        st.session_state.dynamic_quizzes = []
-                        st.session_state.flashcards_data = []
-                        st.session_state.quiz_state = {}
-                        st.rerun()
+                st.rerun()
 
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
