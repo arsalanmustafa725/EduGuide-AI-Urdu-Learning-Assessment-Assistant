@@ -172,17 +172,32 @@ def generate_urdu_audio(text):
     except Exception:
         return None
 
+import html
+
 def create_pdf_report(text):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
     style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
     story = [Paragraph("EduGuide AI Urdu - Educational Report", styles['Heading1']), Spacer(1, 12)]
+    
+    # مارک ڈاؤن کریکٹرز اور ریگولر اسپیشل کریکٹرز کو کلین اور اسکیپ کریں
     clean_text = re.sub(r'[*#\_`~$]', '', text)
+    
     for line in clean_text.split('\n'):
-        if line.strip():
-            story.append(Paragraph(line, style))
-            story.append(Spacer(1, 6))
+        line_clean = line.strip()
+        if line_clean:
+            # ReportLab XML parser ایرر سے بچنے کے لیے HTML Escape کریں
+            safe_line = html.escape(line_clean)
+            try:
+                story.append(Paragraph(safe_line, style))
+                story.append(Spacer(1, 6))
+            except Exception:
+                # اگر کسی لائن میں کوئی نایاب کریکٹر پارس نہ ہو سکے تو خالص ٹیکسٹ رکھیں
+                plain_safe = re.sub(r'[<>&]', '', line_clean)
+                story.append(Paragraph(plain_safe, style))
+                story.append(Spacer(1, 6))
+                
     doc.build(story)
     buffer.seek(0)
     return buffer
