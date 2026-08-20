@@ -11,14 +11,10 @@ import PyPDF2
 from PIL import Image
 import base64
 import html
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from streamlit_mic_recorder import mic_recorder
 import arabic_reshaper
 from bidi.algorithm import get_display
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from fpdf import FPDF
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
@@ -194,62 +190,39 @@ def generate_audio(text, lang_code):
     except Exception:
         return None
 
-# --- اپڈیٹڈ پی ڈی ایف جنریشن فنکشن (اردو سپورٹ کے ساتھ) ---
-import arabic_reshaper
-from bidi.algorithm import get_display
-
+# --- اپڈیٹڈ پی ڈی ایف جنریشن فنکشن (fpdf2 کے ساتھ) ---
 def create_pdf_report(text):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    
-    # اردو یا انگریزی کے لیے فونٹ سیٹ اپ
-    if st.session_state.language == "Urdu":
-        try:
-            # یقینی بنائیں کہ آپ کے پروجیکٹ فولڈر میں 'Amiri-Regular.ttf' یا 'JameelNooriNastaliq.ttf' موجود ہو
-            pdfmetrics.registerFont(TTFont('UrduFont', 'Amiri-Regular.ttf'))
-            report_style = ParagraphStyle(
-                name='UrduReportStyle',
-                fontName='UrduFont',
-                fontSize=12,
-                leading=18,
-                alignment=2 # دائیں طرف الائنمنٹ (Right Align)
-            )
-        except:
-            report_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
-    else:
-        report_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
+    class PDF(FPDF):
+        def header(self):
+            pass
 
-    story = [Paragraph("EduGuide AI - Educational Report", report_style), Spacer(1, 12)]
+    pdf = PDF()
+    pdf.add_page()
     
-    # فضول مارک ڈاؤن سائنز کو ہٹانا
+    # صاف ٹیکسٹ تیار کریں
     clean_text = re.sub(r'[*#\_`~$]', '', text)
     
-    for line in clean_text.split('\n'):
-        line_clean = line.strip()
-        if line_clean:
-            if st.session_state.language == "Urdu":
-                try:
-                    # اردو حروف کو جوڑنا اور سیدھا کرنا
-                    reshaped_text = arabic_reshaper.reshape(line_clean)
-                    bidi_text = get_display(reshaped_text)
-                    safe_line = html.escape(bidi_text)
-                except:
-                    safe_line = html.escape(line_clean)
-            else:
+    # زبان کے لحاظ سے سیٹنگ
+    if st.session_state.language == "Urdu":
+        try:
+            reshaped_text = arabic_reshaper.reshape(clean_text)
+            bidi_text = get_display(reshaped_text)
+        except:
+            bidi_text = clean_text
+    else:
+        bidi_text = clean_text
+
+    # فpdf میں ٹیکسٹ شامل کرنا
+    pdf.set_font("Arial", size=12)
+    
+    for line in bidi_text.split('\n'):
+        if line.strip():
+            safe_line = line.encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(0, 10, txt=safe_line)
             
-                safe_line = html.escape(line_clean)
-                
-            try:
-                story.append(Paragraph(safe_line, report_style))
-                story.append(Spacer(1, 6))
-            except Exception:
-                plain_safe = re.sub(r'[<>&]', '', line_clean)
-                story.append(Paragraph(plain_safe, report_style))
-                story.append(Spacer(1, 6))
-                
-    doc.build(story)
-    buffer.seek(0)
-    return buffer
+    output = io.BytesIO(pdf.output(dest='S'))
+    output.seek(0)
+    return output
 
 def transcribe_audio(audio_bytes, lang_code):
     try:
@@ -274,7 +247,6 @@ with st.sidebar:
     st.caption("Learning & Assessment Assistant")
     st.divider()
     
-    # --- 🌐 انٹرنیشنل لینگویج ٹوگل بٹن ---
     st.subheader("🌐 Language / زبان")
     lang_btn_label = "Switch to English 🇺🇸" if st.session_state.language == "Urdu" else "اردو میں تبدیل کریں 🇵🇰"
     if st.button(lang_btn_label, use_container_width=True):
@@ -545,7 +517,6 @@ with tab_voice:
     if audio_data is not None:
         audio_bytes = audio_data['bytes']
         
-        # ایک یونیک کیش چیک تاکہ ایک ہی آڈیو بار بار پروسیس نہ ہو
         audio_hash = hash(audio_bytes)
         if "last_processed_audio" not in st.session_state:
             st.session_state.last_processed_audio = None
