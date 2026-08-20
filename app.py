@@ -518,18 +518,7 @@ with tab_voice:
                 st.session_state.voice_text = recognized_text
                 st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
                 st.rerun()
-            
-            # اب یہ خود بخود جواب جنریٹ کر دے گا تاکہ آپ کو بٹن دبانے کی ضرورت نہ پڑے
-            with st.spinner("Generating answer..." if active_lang == "English" else "جواب تیار کیا جا رہا ہے..."):
-                main_prompt = f"Please provide a detailed answer in {active_lang} for: {recognized_text}"
-                ans = fetch_ai_response(main_prompt)
-                if ans:
-                    st.session_state.last_answer = ans
-                    st.session_state.total_questions += 1
-                    st.session_state.dynamic_quizzes = []
-                    st.session_state.flashcards_data = []
-                    st.session_state.quiz_state = {}
-                    st.rerun()
+          
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
 user_input = st.text_area(
