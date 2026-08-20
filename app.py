@@ -328,10 +328,12 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
 
     # 100% مستحکم اور فعال ماڈلز
+   # Groq کے فعال اور تیز رفتار ماڈلز
     text_models = [
-        "llama-3.1-8b-instant",
         "llama-3.3-70b-versatile",
-        "mixtral-8x7b-32768"
+        "llama-3.1-8b-instant",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b"
     ]
     
     last_error_msg = None
