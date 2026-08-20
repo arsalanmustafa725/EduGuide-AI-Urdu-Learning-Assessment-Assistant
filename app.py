@@ -375,17 +375,22 @@ with tab_file:
             if file_extracted_text:
                 st.success(f"فائل '{uploaded_file.name}' کامیابی سے پڑھ لی گئی ہے!")
 
+
 with tab_voice:
-    audio_val = st.audio_input("مائیک پر کلک کر کے بولیں، پھر Stop پر کلک کریں:")
+    st.write("🎙️ ریکارڈنگ شروع کرنے کے لیے **Start Recording** اور ختم کرنے کے لیے **Stop** پر کلک کریں:")
     
-    # جیسے ہی آپ Stop کریں گے، یہ کوڈ خود بخود چل پڑے گا
-    if audio_val is not None:
-        st.audio(audio_val)  # آپ کی ریکارڈ شدہ آواز سنانے کے لیے
+    # واضح Start اور Stop بٹن والا ریکارڈر
+    audio_data = mic_recorder(
+        start_prompt="🔴 Start Recording",
+        stop_prompt="⏹️ Stop Recording",
+        key='custom_mic_recorder'
+    )
+    
+    if audio_data is not None:
+        audio_bytes = audio_data['bytes']
+        st.audio(audio_bytes, format='audio/wav')
         
-        # چیک کریں کہ آیا یہ نئی آڈیو ہے
-        audio_bytes = audio_val.read()
-        
-        with st.spinner("EduGuide AI آپ کی آواز سن رہا ہے اور ٹیکسٹ میں بدل رہا ہے..."):
+        with st.spinner("EduGuide AI آپ کی آواز کو ٹیکسٹ میں بدل رہا ہے..."):
             recognized_text = transcribe_urdu_audio(audio_bytes)
             
             if recognized_text:
@@ -400,7 +405,8 @@ with tab_voice:
                         st.session_state.total_questions += 1
                         st.rerun()
             else:
-                st.error("آواز واضح نہیں تھی یا پروسیسنگ میں مسئلہ آیا۔ دوبارہ کوشش کریں۔") 
+                st.error("آواز واضح نہیں تھی یا پروسیسنگ میں مسئلہ آیا۔ دوبارہ کوشش کریں۔")
+                
                 
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
