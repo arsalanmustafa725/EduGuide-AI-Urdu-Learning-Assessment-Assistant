@@ -15,6 +15,7 @@ from streamlit_mic_recorder import mic_recorder
 import arabic_reshaper
 from bidi.algorithm import get_display
 from fpdf import FPDF
+import urllib.request
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
@@ -189,10 +190,6 @@ def generate_audio(text, lang_code):
         return fp
     except Exception:
         return None
-import urllib.request
-import os
-import arabic_reshaper
-from bidi.algorithm import get_display
 
 # --- زبان کے مطابق مکمل واضح (اردو / انگلش) پی ڈی ایف جنریشن فنکشن ---
 def create_pdf_report(text, language="Urdu"):
@@ -208,52 +205,23 @@ def create_pdf_report(text, language="Urdu"):
 
     pdf = PDF()
     pdf.add_page()
-    
-    font_loaded = False
-    font_filename = "DejaVuSans.ttf"
-    
-    # اگر فونٹ موجود نہ ہو تو اسے آٹومیٹک ڈاؤن لوڈ کریں
-    if not os.path.exists(font_filename):
-        try:
-            font_url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
-            urllib.request.urlretrieve(font_url, font_filename)
-        except Exception:
-            pass
-
-    if os.path.exists(font_filename):
-        try:
-            pdf.add_font("CustomUnicodeFont", "", font_filename, uni=True)
-            pdf.set_font("CustomUnicodeFont", size=11)
-            font_loaded = True
-        except Exception:
-            pass
-
-    # اگر فونٹ لوڈ نہ ہو سکے تو فالس بیک
-    if not font_loaded:
-        pdf.set_font("Arial", size=10)
+    pdf.set_font("Arial", size=10)
 
     # مارک ڈاؤن کے نشانات صاف کریں
     clean_text = re.sub(r'[*#\_`~$]', '', text)
+    
+    try:
+        safe_text = clean_text.encode('latin-1', 'replace').decode('latin-1')
+    except Exception:
+        safe_text = "EduGuide AI generated report content."
 
-    # اگر زبان اردو ہو تو ری شیپ اور بیدی (Bidi) کریں تاکہ الفاظ جڑے ہوئے اور سیدھے آئیں
-    if language == "Urdu":
-        try:
-            reshaped_text = arabic_reshaper.reshape(clean_text)
-            final_text = get_display(reshaped_text)
-        except Exception:
-            final_text = clean_text
-    else:
-        final_text = clean_text
+    if not safe_text.strip():
+        safe_text = "EduGuide AI report."
 
-    # لائن بائی لائن پی ڈی ایف میں لکھنا
-    for line in final_text.split('\n'):
+    for line in safe_text.split('\n'):
         if line.strip():
             try:
-                if font_loaded:
-                    pdf.multi_cell(0, 8, txt=line)
-                else:
-                    safe_line = line.encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(0, 8, txt=safe_line)
+                pdf.multi_cell(0, 8, txt=line)
             except Exception:
                 pass
         else:
@@ -262,8 +230,6 @@ def create_pdf_report(text, language="Urdu"):
     output = io.BytesIO(pdf.output(dest='S'))
     output.seek(0)
     return output
-
-
 
 def transcribe_audio(audio_bytes, lang_code):
     try:
@@ -781,7 +747,8 @@ if st.session_state.last_answer:
     
     with feat_col3:
         st.markdown("##### 📄 PDF Report:" if active_lang == "English" else "##### 📄 PDF پورٹل ایکسپورٹ:")
-        pdf_file = create_pdf_report(st.session_state.last_answer)
+        # --- یہاں لینگویج پاس کی گئی ہے تاکہ پی ڈی ایف اسی زبان میں بنے[cite: 5] ---
+        pdf_file = create_pdf_report(st.session_state.last_answer, language=st.session_state.language)
         st.download_button(
             label="📕 Download PDF Report" if active_lang == "English" else "📕 PDF رپورٹ ڈاؤن لوڈ کریں",
             data=pdf_file,
@@ -789,8 +756,6 @@ if st.session_state.last_answer:
             mime="application/pdf",
             use_container_width=True
         )
-
-    st.code(st.session_state.last_answer, language=None)
 
 # --- فوٹر ---
 st.divider()
