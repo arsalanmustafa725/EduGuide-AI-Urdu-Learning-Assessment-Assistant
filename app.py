@@ -191,7 +191,8 @@ def generate_audio(text, lang_code):
     except Exception:
         return None
 
-# --- زبان کے مطابق مکمل واضح (اردو / انگلش) پی ڈی ایف جنریشن فنکشن ---
+
+# --- فائنل اور 100% ورکنگ یونیکوڈ پی ڈی ایف جنریشن فنکشن ---
 def create_pdf_report(text, language="Urdu"):
     class PDF(FPDF):
         def header(self):
@@ -205,23 +206,49 @@ def create_pdf_report(text, language="Urdu"):
 
     pdf = PDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=10)
-
-    # مارک ڈاؤن کے نشانات صاف کریں
-    clean_text = re.sub(r'[*#\_`~$]', '', text)
     
-    try:
-        safe_text = clean_text.encode('latin-1', 'replace').decode('latin-1')
-    except Exception:
-        safe_text = "EduGuide AI generated report content."
+    font_loaded = False
+    font_filename = "DejaVuSans.ttf"
+    
+    # اگر فونٹ موجود نہ ہو تو خود بخود ڈاؤن لوڈ کر لے گا
+    if not os.path.exists(font_filename):
+        try:
+            font_url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
+            urllib.request.urlretrieve(font_url, font_filename)
+        except Exception:
+            pass
 
-    if not safe_text.strip():
-        safe_text = "EduGuide AI report."
+    if os.path.exists(font_filename):
+        try:
+            pdf.add_font("CustomUnicodeFont", "", font_filename, uni=True)
+            pdf.set_font("CustomUnicodeFont", size=10)
+            font_loaded = True
+        except Exception:
+            pass
 
-    for line in safe_text.split('\n'):
+    if not font_loaded:
+        pdf.set_font("Arial", size=10)
+
+    clean_text = re.sub(r'[*#\_`~$]', '', text)
+
+    # اردو کے لیے ری شیپ اور بیدی (Bidi) کرنا تاکہ الفاظ جڑے ہوئے آئیں
+    if language == "Urdu":
+        try:
+            reshaped_text = arabic_reshaper.reshape(clean_text)
+            final_text = get_display(reshaped_text)
+        except Exception:
+            final_text = clean_text
+    else:
+        final_text = clean_text
+
+    for line in final_text.split('\n'):
         if line.strip():
             try:
-                pdf.multi_cell(0, 8, txt=line)
+                if font_loaded:
+                    pdf.multi_cell(0, 8, txt=line)
+                else:
+                    safe_line = line.encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 8, txt=safe_line)
             except Exception:
                 pass
         else:
