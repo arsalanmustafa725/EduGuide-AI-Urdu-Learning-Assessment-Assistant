@@ -189,39 +189,71 @@ def generate_audio(text, lang_code):
         return fp
     except Exception:
         return None
-
 import urllib.request
 import os
+import arabic_reshaper
+from bidi.algorithm import get_display
 
-
-# --- 100% مستحکم اور ایرر فری پی ڈی ایف جنریشن فنکشن ---
-def create_pdf_report(text):
+# --- زبان کے مطابق مکمل واضح (اردو / انگلش) پی ڈی ایف جنریشن فنکشن ---
+def create_pdf_report(text, language="Urdu"):
     class PDF(FPDF):
         def header(self):
-            self.set_font("Arial", "B", 11)
-            self.cell(0, 10, "EduGuide AI - Learning Report", 0, 1, "C")
-            self.ln(3)
+            try:
+                self.set_font("Arial", "B", 10)
+                header_title = "EduGuide AI - Learning Report" if language == "English" else "EduGuide AI - تعلیمی رپورٹ"
+                self.cell(0, 10, header_title, 0, 1, "C")
+                self.ln(2)
+            except Exception:
+                pass
 
     pdf = PDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=10)
     
+    font_loaded = False
+    font_filename = "DejaVuSans.ttf"
+    
+    # اگر فونٹ موجود نہ ہو تو اسے آٹومیٹک ڈاؤن لوڈ کریں
+    if not os.path.exists(font_filename):
+        try:
+            font_url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
+            urllib.request.urlretrieve(font_url, font_filename)
+        except Exception:
+            pass
+
+    if os.path.exists(font_filename):
+        try:
+            pdf.add_font("CustomUnicodeFont", "", font_filename, uni=True)
+            pdf.set_font("CustomUnicodeFont", size=11)
+            font_loaded = True
+        except Exception:
+            pass
+
+    # اگر فونٹ لوڈ نہ ہو سکے تو فالس بیک
+    if not font_loaded:
+        pdf.set_font("Arial", size=10)
+
     # مارک ڈاؤن کے نشانات صاف کریں
     clean_text = re.sub(r'[*#\_`~$]', '', text)
-    
-    # FPDF کے لیے مکمل سیف انکوڈنگ تاکہ کسی بھی قسم کا کریش یا ایکسیپشن نہ آئے
-    try:
-        safe_text = clean_text.encode('latin-1', 'replace').decode('latin-1')
-    except Exception:
-        safe_text = "EduGuide AI generated content report."
-        
-    if not safe_text.strip():
-        safe_text = "EduGuide AI generated report."
 
-    for line in safe_text.split('\n'):
+    # اگر زبان اردو ہو تو ری شیپ اور بیدی (Bidi) کریں تاکہ الفاظ جڑے ہوئے اور سیدھے آئیں
+    if language == "Urdu":
+        try:
+            reshaped_text = arabic_reshaper.reshape(clean_text)
+            final_text = get_display(reshaped_text)
+        except Exception:
+            final_text = clean_text
+    else:
+        final_text = clean_text
+
+    # لائن بائی لائن پی ڈی ایف میں لکھنا
+    for line in final_text.split('\n'):
         if line.strip():
             try:
-                pdf.multi_cell(0, 8, txt=line)
+                if font_loaded:
+                    pdf.multi_cell(0, 8, txt=line)
+                else:
+                    safe_line = line.encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 8, txt=safe_line)
             except Exception:
                 pass
         else:
