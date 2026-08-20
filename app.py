@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import json
+import time
 from gtts import gTTS
 import io
 import PyPDF2
@@ -275,7 +276,7 @@ with st.sidebar:
     * ☁️ **علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026)**
     """)
     st.divider()
-    st.write("👤 **ڈویلپر:** ارسلان (Arsalan)")
+    st.write("👤 **ڈویلپر:** ارسلان مصطفیٰ (Arsalan Mustafa)")
     st.write("🎓 AI & Software Development")
 
 # --- dynamic SYSTEM PROMPT ---
@@ -326,11 +327,11 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
 
+    # 100% مستحکم اور فعال ماڈلز
     text_models = [
-        "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it"
+        "llama-3.3-70b-versatile",
+        "mixtral-8x7b-32768"
     ]
     
     last_error_msg = None
@@ -364,6 +365,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
                     return remove_foreign_characters(raw_answer)
                 except Exception as e:
                     last_error_msg = str(e)
+                    time.sleep(1)
                     continue
             st.error(f"تصویر پروسیسنگ میں مسئلہ آیا یا ماڈل لمٹ ختم ہے۔ تفصیل: {last_error_msg}")
             return None 
@@ -383,6 +385,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
                 return remove_foreign_characters(raw_answer)
             except Exception as e:
                 last_error_msg = str(e)
+                time.sleep(1)  # ریٹ لمیٹ برسٹ سے بچنے کے لیے سیکنڈ کا وقفہ
                 continue
                 
         st.error(f"تمام AI ماڈلز کی درخواستیں ناکام ہو گئیں یا لمٹ ختم ہے۔ آخری مسئلہ: {last_error_msg}")
