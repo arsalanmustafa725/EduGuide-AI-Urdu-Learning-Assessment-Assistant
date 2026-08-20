@@ -10,7 +10,8 @@ from PIL import Image
 import base64
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle 
+from streamlit_mic_recorder import mic_recorder
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
