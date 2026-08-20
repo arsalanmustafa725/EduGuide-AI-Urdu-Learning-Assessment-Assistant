@@ -713,7 +713,7 @@ if st.session_state.last_answer:
                 
                 st.write("---")
 
-    # --- 🛠️ اسمارٹ اور کمپیکٹ ایکسپورٹ ٹولز (ایک ہی جگہ پر تمام آپشنز) ---
+  # --- 🛠️ اسمارٹ اور کمپیکٹ ایکسپورٹ ٹولز (ایک ہی جگہ پر تمام آپشنز) ---
     st.divider()
     st.subheader("🛠️ Export & Download Options:" if st.session_state.language == "English" else "🛠️ رپورٹ ایکسپورٹ اور ڈاؤن لوڈ:")
 
@@ -737,7 +737,7 @@ if st.session_state.last_answer:
         if audio_fp:
             st.audio(audio_fp, format='audio/mp3')
 
- with col_d2:
+    with col_d2:
         if "PDF" in selected_format:
             pdf_file = create_pdf_report(st.session_state.last_answer, language="English")
             st.download_button(
