@@ -508,17 +508,25 @@ with tab_voice:
     
     if audio_data is not None:
         audio_bytes = audio_data['bytes']
-        st.audio(audio_bytes, format='audio/wav')
         
-        with st.spinner("Processing voice input..." if active_lang == "English" else "آواز کو ٹیکسٹ میں بدلا جا رہا ہے..."):
-            lang_code_whisper = "ur" if active_lang == "Urdu" else "en"
-            recognized_text = transcribe_audio(audio_bytes, lang_code_whisper)
+        # ایک یونیک کیش چیک تاکہ ایک ہی آڈیو بار بار پروسیس نہ ہو
+        audio_hash = hash(audio_bytes)
+        if "last_processed_audio" not in st.session_state:
+            st.session_state.last_processed_audio = None
             
-            if recognized_text:
-                st.session_state.voice_text = recognized_text
-                st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
-                st.rerun()
-          
+        if st.session_state.last_processed_audio != audio_hash:
+            st.session_state.last_processed_audio = audio_hash
+            
+            st.audio(audio_bytes, format='audio/wav')
+            
+            with st.spinner("Processing voice input..." if active_lang == "English" else "آواز کو ٹیکسٹ میں بدلا جا رہا ہے..."):
+                lang_code_whisper = "ur" if active_lang == "Urdu" else "en"
+                recognized_text = transcribe_audio(audio_bytes, lang_code_whisper)
+                
+                if recognized_text:
+                    st.session_state.voice_text = recognized_text
+                    st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
+                    st.rerun()
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
 user_input = st.text_area(
