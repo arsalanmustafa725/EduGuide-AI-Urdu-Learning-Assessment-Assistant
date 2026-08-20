@@ -180,9 +180,12 @@ def extract_text_from_file(uploaded_file):
         st.error(err_msg)
     return text
 
+# آڈیو کے لیے بہترین کلیننگ (تاکہ مارک ڈاؤن علامات آواز کو خراب نہ کریں)
 def generate_audio(text, lang_code):
     try:
-        clean_speech_text = re.sub(r'[*#\_`~$]', '', text)
+        # تمام مارک ڈاؤن ٹیگز جیسے *, #, _, `, ~, |, - کو ہٹانا تاکہ وائس صاف آئے
+        clean_speech_text = re.sub(r'[*#\_`~|\-]', ' ', text)
+        clean_speech_text = re.sub(r'\s+', ' ', clean_speech_text).strip()
         tts = gTTS(text=clean_speech_text, lang=lang_code)
         fp = io.BytesIO()
         tts.write_to_fp(fp)
@@ -191,7 +194,7 @@ def generate_audio(text, lang_code):
     except Exception:
         return None
 
-# --- پی ڈی ایف جنریشن فنکشن (صرف انگلش کے لیے بہترین) ---
+# --- پی ڈی ایف جنریشن فنکشن (صرف انگلش کے لیے) ---
 def create_pdf_report(text, language="English"):
     class PDF(FPDF):
         def header(self):
@@ -321,9 +324,12 @@ with st.sidebar:
     st.write("👤 **ڈویلپر:** ارسلان مصطفیٰ (Arsalan Mustafa)" if st.session_state.language == "Urdu" else "👤 **Developer:** Arsalan Mustafa")
     st.write("🎓 AI & Software Development")
 
-# --- DYNAMIC SYSTEM PROMPT ---
+# --- DYNAMIC SYSTEM PROMPT (زبان کے مطابق مکمل کنٹرول) ---
 active_lang = st.session_state.language
-lang_instruction = "All answers must be written in PURE, FLUENT URDU SCRIPT." if active_lang == "Urdu" else "All answers must be written in PURE, PROFESSIONAL, ACADEMIC ENGLISH."
+if active_lang == "Urdu":
+    lang_instruction = "All answers must be written strictly in PURE, FLUENT URDU SCRIPT. Do not mix English unless requested for a technical term."
+else:
+    lang_instruction = "All answers must be written strictly in PURE, PROFESSIONAL, ACADEMIC ENGLISH."
 
 socratic_instruction = ""
 if socratic_mode:
@@ -342,7 +348,7 @@ Current Configuration:
 {socratic_instruction}
 
 🛑 STRICT SUBJECT & LANGUAGE RULES:
-1. Ensure responses strictly match the selected language ("{active_lang}").
+1. You MUST respond completely and strictly in the selected language ("{active_lang}"). If language is Urdu, write in Urdu script. If English, write in English.
 2. If the user's query does not match the selected subject, reject it politely with a mismatch notice in "{active_lang}".
 3. Keep formatting clean, precise, and structured.
 """
@@ -423,7 +429,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
 
 # --- ڈائنامک کوئز جنریٹر ---
 def generate_dynamic_quiz_data(topic_content):
-    lang_instruction_json = "in Urdu" if active_lang == "Urdu" else "in English"
+    lang_instruction_json = "in Urdu script" if active_lang == "Urdu" else "in English"
     quiz_sys_prompt = f"""You are an exam generator. Return strictly valid JSON array of 3 MCQs based on the topic {lang_instruction_json}.
 Format:
 [
@@ -452,7 +458,7 @@ Only return raw JSON array."""
 
 # --- فلیش کارڈز جنریٹر ---
 def generate_flashcards_data(topic_content):
-    lang_instruction_fc = "in Urdu" if active_lang == "Urdu" else "in English"
+    lang_instruction_fc = "in Urdu script" if active_lang == "Urdu" else "in English"
     fc_sys_prompt = f"""You are a revision card builder. Return strictly valid JSON array of 4 key revision flashcards {lang_instruction_fc}.
 Format:
 [
@@ -550,7 +556,7 @@ if st.button(btn_label, use_container_width=True, type="primary"):
         st.warning("Please enter a question or upload a file/image first!" if active_lang == "English" else "پہلے اپنا سوال درج کریں یا کوئی فائل/تصویر اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI is generating the answer...' if active_lang == "English" else 'EduGuide AI جواب تیار کر رہا ہے...'):
-            main_prompt = f"Please provide a comprehensive answer in {active_lang} based on the curriculum for '{selected_board}', subject '{selected_subject}':\n\n{clean_input_text}"
+            main_prompt = f"Please provide a comprehensive answer strictly in {active_lang} based on the curriculum for '{selected_board}', subject '{selected_subject}':\n\n{clean_input_text}"
             ans = fetch_ai_response(main_prompt, image_bytes)
             if ans:
                 st.session_state.last_answer = ans
@@ -585,42 +591,42 @@ if st.session_state.last_answer:
         with r1_c1:
             btn_t1 = "🔍 1. Simplify Explanation" if active_lang == "English" else "🔍 1. مزید آسان اردو میں سمجھائیں"
             if st.button(btn_t1, use_container_width=True):
-                tool_prompt = f"Explain this simpler in {active_lang}:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Explain this simpler strictly in {active_lang}:\n\n{st.session_state.last_answer}"
         
         with r1_c2:
             btn_t2 = "📅 2. AI Study Roadmap" if active_lang == "English" else "📅 2. AI اسٹڈی پلانر بنائیں"
             if st.button(btn_t2, use_container_width=True):
-                tool_prompt = f"Create a 15-day study roadmap in {active_lang} for this topic:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Create a 15-day study roadmap strictly in {active_lang} for this topic:\n\n{st.session_state.last_answer}"
         
         with r1_c3:
             btn_t3 = "📝 3. Generate Model Paper" if active_lang == "English" else "📝 3. مکمل ماڈل پیپر جنریٹ کریں"
             if st.button(btn_t3, use_container_width=True):
-                tool_prompt = f"Generate a model test paper with MCQs and short questions in {active_lang} based on:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Generate a model test paper with MCQs and short questions strictly in {active_lang} based on:\n\n{st.session_state.last_answer}"
         
         with r2_c1:
             btn_t4 = "🧪 4. Step-by-Step Solution" if active_lang == "English" else "🧪 4. Step-by-Step فارمولا حل"
             if st.button(btn_t4, use_container_width=True):
-                tool_prompt = f"Break down the formulas or concepts step-by-step in {active_lang}:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Break down the formulas or concepts step-by-step strictly in {active_lang}:\n\n{st.session_state.last_answer}"
         
         with r2_c2:
             btn_t5 = "💡 5. Socratic Hint" if active_lang == "English" else "💡 5. سوچنے کے لیے اشارہ (Hint) دیں"
             if st.button(btn_t5, use_container_width=True):
-                tool_prompt = f"Provide a guiding hint or question in {active_lang} to test the student:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Provide a guiding hint or question strictly in {active_lang} to test the student:\n\n{st.session_state.last_answer}"
         
         with r2_c3:
             btn_t6 = "🔤 6. Technical Glossary" if active_lang == "English" else "🔤 6. اہم تکنیکی الفاظ کی لغت"
             if st.button(btn_t6, use_container_width=True):
-                tool_prompt = f"List key technical terms and definitions in {active_lang} from:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"List key technical terms and definitions strictly in {active_lang} from:\n\n{st.session_state.last_answer}"
 
         with r3_c1:
             btn_t7 = "📜 7. Past Papers Focus" if active_lang == "English" else "📜 7. پاسٹ پیپرز اینالیٹکس"
             if st.button(btn_t7, use_container_width=True):
-                tool_prompt = f"Analyze past paper importance for this topic in {active_lang}:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Analyze past paper importance for this topic strictly in {active_lang}:\n\n{st.session_state.last_answer}"
 
         with r3_c2:
             btn_t8 = "🎮 8. Gamified Quiz Mode" if active_lang == "English" else "🎮 8. فارم بائیٹ کوئز گیم"
             if st.button(btn_t8, use_container_width=True):
-                tool_prompt = f"Create a 3-question MCQ quiz in {active_lang} with answer key based on:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"Create a 3-question MCQ quiz strictly in {active_lang} with answer key based on:\n\n{st.session_state.last_answer}"
 
         if tool_prompt:
             with st.spinner('Processing tool request...' if active_lang == "English" else 'EduGuide AI منتخب کردہ ٹول کا پروسیس چلا رہا ہے...'):
@@ -713,32 +719,31 @@ if st.session_state.last_answer:
                 
                 st.write("---")
 
-  # --- 🛠️ اسمارٹ اور کمپیکٹ ایکسپورٹ ٹولز (ایک ہی جگہ پر تمام آپشنز) ---
+    # --- 🛠️ اسمارٹ اور کمپیکٹ ایکسپورٹ ٹولز ---
     st.divider()
-    st.subheader("🛠️ Export & Download Options:" if st.session_state.language == "English" else "🛠️ رپورٹ ایکسپورٹ اور ڈاؤن لوڈ:")
+    st.subheader("🛠️ Export & Download Options:" if active_lang == "English" else "🛠️ رپورٹ ایکسپورٹ اور ڈاؤن لوڈ:")
 
-    # زبان کے لحاظ سے دستیاب فارمیٹ کی لسٹ تیار کرنا
-    if st.session_state.language == "English":
+    # اگر زبان اردو ہے تو پی ڈی ایف کا آپشن ہٹا دیا گیا ہے تاکہ سوالیہ نشان نہ آئیں
+    if active_lang == "English":
         export_options = ["PDF Report (.pdf)", "Text File (.txt)"]
     else:
         export_options = ["Text File (.txt) - Recommended for Urdu"]
 
     selected_format = st.selectbox(
-        "Select download format:" if st.session_state.language == "English" else "ڈاؤن لوڈ کا فارمیٹ منتخب کریں:",
+        "Select download format:" if active_lang == "English" else "ڈاؤن لوڈ کا فارمیٹ منتخب کریں:",
         export_options
     )
 
     col_d1, col_d2 = st.columns([2, 1])
 
     with col_d1:
-        # آڈیو آؤٹ پٹ کے لیے چھوٹا پلیئر
-        tts_lang_code = "ur" if st.session_state.language == "Urdu" else "en"
+        tts_lang_code = "ur" if active_lang == "Urdu" else "en"
         audio_fp = generate_audio(st.session_state.last_answer, tts_lang_code)
         if audio_fp:
             st.audio(audio_fp, format='audio/mp3')
 
     with col_d2:
-        if "PDF" in selected_format:
+        if "PDF" in selected_format and active_lang == "English":
             pdf_file = create_pdf_report(st.session_state.last_answer, language="English")
             st.download_button(
                 label="📥 Download PDF",
@@ -748,8 +753,8 @@ if st.session_state.last_answer:
                 use_container_width=True
             )
         else:
-            # اردو کے لیے RTL مارک شامل کرنا تاکہ نوٹ پیڈ میں دائیں طرف سے شو ہو
-            txt_data = "\u202B" + st.session_state.last_answer if st.session_state.language == "Urdu" else st.session_state.last_answer
+            # اردو کے لیے RTL مارک شامل کرنا تاکہ ٹیکسٹ درست سمت میں رہے
+            txt_data = "\u202B" + st.session_state.last_answer if active_lang == "Urdu" else st.session_state.last_answer
             
             st.download_button(
                 label="📥 Download .txt",
