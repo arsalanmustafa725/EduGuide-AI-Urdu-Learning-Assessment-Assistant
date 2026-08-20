@@ -195,53 +195,56 @@ def generate_audio(text, lang_code):
         return None
 
 # --- اپڈیٹڈ پی ڈی ایف جنریشن فنکشن (اردو سپورٹ کے ساتھ) ---
+import arabic_reshaper
+from bidi.algorithm import get_display
+
 def create_pdf_report(text):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
     
-    # اردو یا انگریزی کے لحاظ سے فونٹ کا انتخاب
+    # اردو یا انگریزی کے لیے فونٹ سیٹ اپ
     if st.session_state.language == "Urdu":
-        # نوٹ: اس بات کو یقینی بنائیں کہ آپ کے پروجیکٹ فولڈر میں 'Amiri-Regular.ttf' موجود ہو
         try:
-            pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
-            urdu_style = ParagraphStyle(
-                name='UrduNormal',
-                fontName='Amiri',
+            # یقینی بنائیں کہ آپ کے پروجیکٹ فولڈر میں 'Amiri-Regular.ttf' یا 'JameelNooriNastaliq.ttf' موجود ہو
+            pdfmetrics.registerFont(TTFont('UrduFont', 'Amiri-Regular.ttf'))
+            report_style = ParagraphStyle(
+                name='UrduReportStyle',
+                fontName='UrduFont',
                 fontSize=12,
                 leading=18,
                 alignment=2 # دائیں طرف الائنمنٹ (Right Align)
             )
         except:
-            # اگر فونٹ فائل نہ ملے تو فال بیک اسٹائل
-            urdu_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
+            report_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
     else:
-        urdu_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
+        report_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
 
-    story = [Paragraph("EduGuide AI - Educational Report", urdu_style), Spacer(1, 12)]
+    story = [Paragraph("EduGuide AI - Educational Report", report_style), Spacer(1, 12)]
     
+    # فضول مارک ڈاؤن سائنز کو ہٹانا
     clean_text = re.sub(r'[*#\_`~$]', '', text)
     
     for line in clean_text.split('\n'):
         line_clean = line.strip()
         if line_clean:
-            # اگر زبان اردو ہو تو حروف کو جوڑنے اور سیدھا کرنے کے لیے
             if st.session_state.language == "Urdu":
                 try:
+                    # اردو حروف کو جوڑنا اور سیدھا کرنا
                     reshaped_text = arabic_reshaper.reshape(line_clean)
                     bidi_text = get_display(reshaped_text)
                     safe_line = html.escape(bidi_text)
                 except:
                     safe_line = html.escape(line_clean)
             else:
+            
                 safe_line = html.escape(line_clean)
                 
             try:
-                story.append(Paragraph(safe_line, urdu_style))
+                story.append(Paragraph(safe_line, report_style))
                 story.append(Spacer(1, 6))
             except Exception:
                 plain_safe = re.sub(r'[<>&]', '', line_clean)
-                story.append(Paragraph(plain_safe, urdu_style))
+                story.append(Paragraph(plain_safe, report_style))
                 story.append(Spacer(1, 6))
                 
     doc.build(story)
