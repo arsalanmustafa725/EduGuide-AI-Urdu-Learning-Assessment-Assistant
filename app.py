@@ -15,6 +15,10 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from streamlit_mic_recorder import mic_recorder
+import arabic_reshaper
+from bidi.algorithm import get_display
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
 st.set_page_config(
@@ -62,7 +66,7 @@ st.markdown(f"""
 
 h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {{
     font-family: {'\'Noto Nastaliq Urdu\', \'Jameel Noori Nastaliq\', sans-serif' if current_lang == 'Urdu' else '\'Segoe UI\', sans-serif'} !important;
-
+}}
 
 /* ڈائنامک الائنمنٹ (اردو کے لیے RTL اور انگلش کے لیے LTR) */
 .dynamic-text-box {{
@@ -190,25 +194,54 @@ def generate_audio(text, lang_code):
     except Exception:
         return None
 
+# --- اپڈیٹڈ پی ڈی ایف جنریشن فنکشن (اردو سپورٹ کے ساتھ) ---
 def create_pdf_report(text):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
-    style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
-    story = [Paragraph("EduGuide AI - Educational Report", styles['Heading1']), Spacer(1, 12)]
+    
+    # اردو یا انگریزی کے لحاظ سے فونٹ کا انتخاب
+    if st.session_state.language == "Urdu":
+        # نوٹ: اس بات کو یقینی بنائیں کہ آپ کے پروجیکٹ فولڈر میں 'Amiri-Regular.ttf' موجود ہو
+        try:
+            pdfmetrics.registerFont(TTFont('Amiri', 'Amiri-Regular.ttf'))
+            urdu_style = ParagraphStyle(
+                name='UrduNormal',
+                fontName='Amiri',
+                fontSize=12,
+                leading=18,
+                alignment=2 # دائیں طرف الائنمنٹ (Right Align)
+            )
+        except:
+            # اگر فونٹ فائل نہ ملے تو فال بیک اسٹائل
+            urdu_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
+    else:
+        urdu_style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
+
+    story = [Paragraph("EduGuide AI - Educational Report", urdu_style), Spacer(1, 12)]
     
     clean_text = re.sub(r'[*#\_`~$]', '', text)
     
     for line in clean_text.split('\n'):
         line_clean = line.strip()
         if line_clean:
-            safe_line = html.escape(line_clean)
+            # اگر زبان اردو ہو تو حروف کو جوڑنے اور سیدھا کرنے کے لیے
+            if st.session_state.language == "Urdu":
+                try:
+                    reshaped_text = arabic_reshaper.reshape(line_clean)
+                    bidi_text = get_display(reshaped_text)
+                    safe_line = html.escape(bidi_text)
+                except:
+                    safe_line = html.escape(line_clean)
+            else:
+                safe_line = html.escape(line_clean)
+                
             try:
-                story.append(Paragraph(safe_line, style))
+                story.append(Paragraph(safe_line, urdu_style))
                 story.append(Spacer(1, 6))
             except Exception:
                 plain_safe = re.sub(r'[<>&]', '', line_clean)
-                story.append(Paragraph(plain_safe, style))
+                story.append(Paragraph(plain_safe, urdu_style))
                 story.append(Spacer(1, 6))
                 
     doc.build(story)
@@ -527,6 +560,7 @@ with tab_voice:
                     st.session_state.voice_text = recognized_text
                     st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
                     st.rerun()
+
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
 user_input = st.text_area(
