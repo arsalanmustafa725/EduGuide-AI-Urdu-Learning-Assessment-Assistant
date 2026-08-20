@@ -661,30 +661,47 @@ if st.session_state.last_answer:
                 
                 st.write("---")
 
-    # --- ایکسپورٹ ٹولز ---
-    st.divider()
-    st.subheader("🛠️ Export & Download Options:" if active_lang == "English" else "🛠️ رپورٹ ڈاؤن لوڈ:")
+# --- ایکسپورٹ ٹولز (مطلوبہ ترتیب کے مطابق) ---
+st.divider()
+st.subheader("🛠️ Export & Download Options:" if active_lang == "English" else "🛠️ رپورٹ ڈاؤن لوڈ کریں:")
 
-    if active_lang == "English":
-        export_options = ["PDF Report (.pdf)", "Text File (.txt)"]
+# زبان کے لحاظ سے سلیکٹ باکس کے آپشنز
+if active_lang == "English":
+    export_options = ["PDF Report (.pdf)", "Text File (.txt)"]
+else:
+    export_options = ["PDF Report (.pdf)", "Text File (.txt)"] # اب دونوں زبانوں میں دونوں آپشنز دستیاب ہوں گے
+
+selected_format = st.selectbox("Select format / فارمیٹ منتخب کریں:", export_options, key="export_format_selectbox")
+
+col_d1, col_d2 = st.columns([2, 1])
+
+with col_d1:
+    # آڈیو پلے بیک ہمیشہ ساتھ رہے گا
+    audio_fp = generate_audio(st.session_state.last_answer, tts_lang_code)
+    if audio_fp:
+        st.audio(audio_fp, format='audio/mp3')
+
+with col_d2:
+    # شرط کے مطابق صرف وہی بٹن شو ہوگا جو یوزر سلیکٹ باکس میں منتخب کرے گا
+    if "PDF" in selected_format:
+        pdf_file = create_pdf_report(st.session_state.last_answer, language=active_lang)
+        st.download_button(
+            label="📥 Download PDF Report",
+            data=pdf_file,
+            file_name="EduGuide_AI_Report.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
     else:
-        export_options = ["Text File (.txt)"]
-
-    selected_format = st.selectbox("Select format:", export_options)
-    col_d1, col_d2 = st.columns([2, 1])
-
-    with col_d1:
-        audio_fp = generate_audio(st.session_state.last_answer, tts_lang_code)
-        if audio_fp:
-            st.audio(audio_fp, format='audio/mp3')
-
-    with col_d2:
-        if "PDF" in selected_format and active_lang == "English":
-            pdf_file = create_pdf_report(st.session_state.last_answer, language="English")
-            st.download_button(label="📥 Download PDF", data=pdf_file, file_name="EduGuide_AI_Report.pdf", mime="application/pdf", use_container_width=True)
-        else:
-            txt_data = "\u202B" + st.session_state.last_answer if active_lang == "Urdu" else st.session_state.last_answer
-            st.download_button(label="📥 Download .txt", data=txt_data, file_name="EduGuide_AI_Report.txt", mime="text/plain", use_container_width=True)
+        # ڈاٹ ٹی ایکس ٹی (.txt) فائل میں اسکرین کا ہو بہو مکمل ڈیٹا 100% آئے گا
+        txt_data = "\u202B" + st.session_state.last_answer if active_lang == "Urdu" else st.session_state.last_answer
+        st.download_button(
+            label="📄 Download Text File (.txt)",
+            data=txt_data,
+            file_name="EduGuide_AI_Report.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
 
 # --- فوٹر ---
 st.divider()
