@@ -7,3 +7,4 @@ reportlab
 streamlit-mic-recorder
 arabic-reshaper
 python-bidi
+fpdf2
