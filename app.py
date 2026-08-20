@@ -191,20 +191,24 @@ def create_pdf_report(text, language="English"):
     if not text:
         text = "No content available."
 
-    # مارک ڈاؤن کے نشانات کو صاف کریں تاکہ PDF میں پرنٹنگ کا کوئی مسئلہ نہ آئے
+    # مارک ڈاؤن کی علامتیں ہٹائیں لیکن نمبرنگ اور بنیادی فارمیٹنگ محفوظ رکھیں
     cleaned_text = text.replace('**', '').replace('__', '').replace('###', '').replace('##', '').replace('#', '')
     
-    # ہر ایک لائن کو محفوظ طریقے سے پی ڈی ایف میں شامل کریں تاکہ کوئی بھی حصہ مس نہ ہو
     for line in cleaned_text.split('\n'):
+        # اگر لائن میں ٹیبل ہو تو اسے بہتر طریقے سے دکھائیں
+        if '|' in line:
+            line = line.replace('|', ' | ')
+            
+        # ہر لائن کو چیک کریں کہ آیا وہ خالی نہیں ہے
         if line.strip():
             try:
-                # تمام انگلش یا عام حروف کو درست انکوڈنگ کے ساتھ پاس کریں
+                # تمام انگلش الفاظ اور نمبرز کو درست انکوڈنگ کے ساتھ پاس کریں
                 safe_line = line.encode('latin-1', 'replace').decode('latin-1')
                 pdf.multi_cell(0, 6, txt=safe_line)
             except Exception:
                 pass
         else:
-            pdf.ln(3)  # خالی لائن کے لیے تھوڑا سا فاصلہ
+            pdf.ln(3)  # خالی سطر کے لیے سپیس
             
     output = io.BytesIO(pdf.output(dest='S'))
     output.seek(0)
