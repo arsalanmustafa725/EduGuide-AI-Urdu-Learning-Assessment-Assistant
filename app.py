@@ -326,7 +326,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
     
-  text_models = [
+text_models = [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
         "deepseek-r1-distill-llama-70b",
