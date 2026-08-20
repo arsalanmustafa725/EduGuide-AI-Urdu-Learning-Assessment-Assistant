@@ -193,44 +193,45 @@ def generate_audio(text, lang_code):
 import urllib.request
 import os
 
-# --- بہتر اور اردو سپورٹڈ پی ڈی ایف جنریشن فنکشن ---
+# --- مکمل یونیکوڈ اور اردو سپورٹڈ پی ڈی ایف جنریشن فنکشن ---
 def create_pdf_report(text):
     class PDF(FPDF):
         def header(self):
-            pass
+            self.set_font("Arial", "B", 10)
+            self.cell(0, 10, "EduGuide AI - Learning Report", 0, 1, "C")
+            self.ln(2)
 
     pdf = PDF()
     pdf.add_page()
     
-    # صاف ٹیکسٹ تیار کریں
+    # فونٹ فائل کا نام اور لنک
+    font_filename = "DejaVuSans.ttf"
+    if not os.path.exists(font_filename):
+        try:
+            # ایک محفوظ اور اوپن سورس یونیکوڈ فونٹ جو اردو کو سپورٹ کرتا ہے
+            font_url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
+            urllib.request.urlretrieve(font_url, font_filename)
+        except Exception:
+            pass
+
+    font_loaded = False
+    if os.path.exists(font_filename):
+        try:
+            # fpdf2 میں یونیکوڈ فونٹ رجسٹر کرنا (uni=True کے ساتھ)
+            pdf.add_font("UrduFont", "", font_filename, uni=True)
+            pdf.set_font("UrduFont", size=11)
+            font_loaded = True
+        except Exception:
+            pass
+
+    # اگر فونٹ لوڈ نہ ہو سکے تو فالس بیک کے طور پر Arial
+    if not font_loaded:
+        pdf.set_font("Arial", size=10)
+
+    # مارک ڈاؤن کے نشانات ختم کریں
     clean_text = re.sub(r'[*#\_`~$]', '', text)
-    
-    font_path = "NotoSansArabic-Regular.ttf"
-    
-    # اگر فونٹ پہلے سے موجود نہیں تو اسے آن لائن سے ڈاؤن لوڈ کر لیں تاکہ اردو بالکل واضح اور پرفیکٹ نظر آئے
-    if not os.path.exists(font_path):
-        try:
-            url = "https://github.com/google/fonts/raw/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2wght%5D.ttf"
-            urllib.request.urlretrieve(url, font_path)
-        except Exception:
-            pass
 
-    # فونٹ شامل کرنے کی کوشش کریں
-    font_added = False
-    if os.path.exists(font_path):
-        try:
-            # fpdf2 میں یونیکوڈ فونٹ رجسٹر کرنا
-            pdf.add_font("ArabicFont", "", font_path)
-            pdf.set_font("ArabicFont", size=12)
-            font_added = True
-        except Exception:
-            pass
-
-    # اگر فونٹ لوڈ نہ ہو سکے تو فالس بیک (Fallback) کے طور پر Arial استعمال کریں
-    if not font_added:
-        pdf.set_font("Arial", size=11)
-
-    # زبان کے لحاظ سے ٹیکسٹ کی ترتیب (اردو کے لیے ری شیپ اور بیدی)
+    # اردو ٹیکسٹ کے لیے ری شاپنگ اور بیدی (Bidi) سیٹنگ تاکہ الفاظ سیدھے اور واضح آئیں
     if st.session_state.language == "Urdu":
         try:
             reshaped_text = arabic_reshaper.reshape(clean_text)
@@ -240,23 +241,25 @@ def create_pdf_report(text):
     else:
         final_text = clean_text
 
-    # پی ڈی ایف میں لائن بائی لائن ٹیکسٹ لکھنا
+    # لائن بائی لائن پی ڈی ایف میں لکھنا
     for line in final_text.split('\n'):
         if line.strip():
             try:
-                if font_added:
-                    pdf.multi_cell(0, 10, txt=line)
+                if font_loaded:
+                    pdf.multi_cell(0, 8, txt=line)
                 else:
                     safe_line = line.encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(0, 10, txt=safe_line)
+                    pdf.multi_cell(0, 8, txt=safe_line)
             except Exception:
                 pass
         else:
-            pdf.ln(5)
+            pdf.ln(4)
             
     output = io.BytesIO(pdf.output(dest='S'))
     output.seek(0)
     return output
+
+
 
 def transcribe_audio(audio_bytes, lang_code):
     try:
