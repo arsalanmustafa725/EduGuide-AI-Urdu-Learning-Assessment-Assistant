@@ -326,16 +326,25 @@ st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
 st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
 
 # --- AI کال کرنے کا فنکشن ---
+
 def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
-        st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
+        st.error("Groq API Key غائب ہے! براہ کرم اپنی درست API Key درج کریں۔")
         return None
     
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
-    text_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    
+    # چار مختلف ماڈلز کا فال بیک چین
+    text_models = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
+    ]
     
     try:
+        # اگر تصویر ہو تو وژن ماڈل
         if img_data and not low_bandwidth:
             vision_models = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
             for v_model in vision_models:
@@ -363,8 +372,32 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
                     return remove_foreign_characters(raw_answer)
                 except Exception:
                     continue
-            st.error("تصویر پروسیسنگ کا ماڈل دستیاب نہیں ہے۔ براہ کرم صرف متن درج کریں۔")
+            st.error("تصویر پروسیسنگ کے ماڈل کی روزانہ کی لمٹ ختم ہے۔ براہ کرم سوال ٹیکسٹ میں درج کریں۔")
             return None
+        
+        # اگر ٹیکسٹ سوال ہو تو تمام دستیاب ماڈلز کو باری باری ٹرائی کریں
+        for model_name in text_models:
+            try:
+                res = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": active_sys_prompt},
+                        {"role": "user", "content": prompt_text}
+                    ],
+                    temperature=0.1
+                )
+                raw_answer = res.choices[0].message.content
+                return remove_foreign_characters(raw_answer)
+            except Exception:
+                continue
+                
+        st.error("Groq کے تمام ماڈلز کی عارضی ریٹ لمٹ ختم ہو چکی ہے۔ برائے مہربانی 10 منٹ بعد دوبارہ ٹرائی کریں یا نئی API Key استعمال کریں۔")
+        return None
+            
+    except Exception as e:
+        st.error(f"کنکشن کا مسئلہ: {str(e)}")
+        return None 
+        
         else:
             for model_name in text_models:
                 try:
