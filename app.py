@@ -3,6 +3,7 @@ from groq import Groq
 import sys
 import os
 import re
+import json
 from gtts import gTTS
 import io
 import PyPDF2
@@ -28,7 +29,7 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس (Custom File Uploader UI) ---
+# --- 🎨 CSS اور اردو فونٹس (Custom File Uploader UI & Flashcards) ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
@@ -92,6 +93,24 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
 [data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"] p {
     display: none !important;
 }
+
+/* 🎴 فلیش کارڈز اسٹائلنگ */
+.flashcard-box {
+    background: linear-gradient(135deg, #ffffff, #f0fdf4);
+    border: 1.5px solid #198754;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.08);
+}
+.flashcard-title {
+    color: #198754;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed #198754;
+    padding-bottom: 4px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -117,6 +136,10 @@ if "quiz_total" not in st.session_state:
     st.session_state.quiz_total = 0
 if "voice_text" not in st.session_state:
     st.session_state.voice_text = ""
+if "dynamic_quizzes" not in st.session_state:
+    st.session_state.dynamic_quizzes = []
+if "flashcards_data" not in st.session_state:
+    st.session_state.flashcards_data = []
 
 # --- 🎯 مددگار فنکشنز ---
 def remove_foreign_characters(text):
@@ -146,7 +169,7 @@ def extract_text_from_file(uploaded_file):
 
 def generate_urdu_audio(text):
     try:
-        clean_speech_text = re.sub(r'[*#\_`~]', '', text)
+        clean_speech_text = re.sub(r'[*#\_`~$]', '', text)
         tts = gTTS(text=clean_speech_text, lang='ur')
         fp = io.BytesIO()
         tts.write_to_fp(fp)
@@ -161,7 +184,7 @@ def create_pdf_report(text):
     styles = getSampleStyleSheet()
     style = ParagraphStyle(name='Normal', fontName='Helvetica', fontSize=10, leading=14)
     story = [Paragraph("EduGuide AI Urdu - Educational Report", styles['Heading1']), Spacer(1, 12)]
-    clean_text = re.sub(r'[*#\_`~]', '', text)
+    clean_text = re.sub(r'[*#\_`~$]', '', text)
     for line in clean_text.split('\n'):
         if line.strip():
             story.append(Paragraph(line, style))
@@ -196,6 +219,7 @@ with st.sidebar:
     st.subheader("🎨 تھیم اور نیٹ ورک سیٹ اپ")
     alkhidmat_theme = st.toggle("🟢 الخدمت برانڈنگ تھیم (Green/Blue)", value=True)
     low_bandwidth = st.toggle("⚡ لو بینڈوڈتھ / دیہاتی موڈ (2G Mode)", value=False)
+    socratic_mode = st.toggle("🧠 سقراطی استاد موڈ (Socratic Tutor)", value=False, help="بنا بنایا حل دینے کے بجائے طالب علم کی سوچ بیدار کرنے کے لیے سوالیہ اشارے فراہم کرتا ہے۔")
     
     if alkhidmat_theme:
         st.markdown("""
@@ -263,6 +287,14 @@ with st.sidebar:
     st.write("🎓 AI & Software Development")
 
 # --- dynamic SYSTEM PROMPT ---
+socratic_instruction = ""
+if socratic_mode:
+    socratic_instruction = """
+🧠 **سقراطی طریقہ تدریس موڈ فعال ہے (SOCRATIC TUTOR MODE ACTIVE):**
+- طالب علم کو براہ راست بنا بنایا مکمل حل یا حتمی جواب مت دیں۔
+- اس کے بجائے، اہم تصور کی ایک سطر وضاحت کریں، پھر طالب علم سے ایک تعمیری رہنمائی والا سوال (Guiding/Leading Question) یا اشارہ (Hint) پوچھیں تاکہ وہ خود صحیح نتیجے پر پہنچے۔
+"""
+
 SYSTEM_PROMPT = f"""
 تمہارا نام 'EduGuide AI' ہے۔ تم پاکستان کے طلباء کے لیے ایک انتہائی محتاط اور سمارٹ AI تعلیمی معاون ہو۔
 یہ پروجیکٹ الخدمت فاؤنڈیشن، بنو قابل (Bano Qabil 3.0) اور علی بابا کلاؤڈ (Alibaba Cloud AI Hackathon 2026) کے لیے تیار کیا گیا ہے۔
@@ -271,6 +303,8 @@ SYSTEM_PROMPT = f"""
 - منتخب کردہ بورڈ/نصاب: "{selected_board}"
 - منتخب کردہ مضمون: "{selected_subject}"
 - منتخب کردہ تعلیمی لیول: "{selected_level}"
+
+{socratic_instruction}
 
 🛑 **سخت ترین مضمون کی وریفیکیشن کے قواعد (STRICT SUBJECT MATCH RULE):**
 1. اگر منتخب کردہ مضمون 'عمومی / دیگر (General)' کے علاوہ کوئی مخصوص مضمون ہے، تو سب سے پہلے صارف کے دیے گئے متن/سوال/تصویر کی جانچ کرو۔
@@ -281,9 +315,10 @@ SYSTEM_PROMPT = f"""
 
 📜 **سخت ترین تحریری و زبان کے قواعد:**
 1. تمام جوابات **صرف اور صرف خالص اور سلیس اردو رسم الخط (Urdu Script)** میں ہونے چاہئیں۔
-2. تمام جوابات بالکل منتخب کردہ بورڈ ("{selected_board}") کے پیٹرن اور نصاب کے مطابق تیار کرو۔
-3. جواب میں کوئی اضافی، فضول یا غیر متعلقہ جملے شامل نہ کرو۔
-4. جب بھی ممکن ہو، تکنیکی انگریزی الفاظ کا اردو ترجمہ **"🔤 اہم تکنیکی الفاظ (Glossary)"** کی ہیڈنگ کے ساتھ لازمی بنائیں۔
+2. ریاضیاتی یا سائنسی مساوات کے لیے مناسب فارمیٹ یا LaTeX فارمیٹ استعمال کریں تاکہ آسانی سے سمجھا جا سکے۔
+3. تمام جوابات بالکل منتخب کردہ بورڈ ("{selected_board}") کے پیٹرن اور نصاب کے مطابق تیار کرو۔
+4. جواب میں کوئی اضافی، فضول یا غیر متعلقہ جملے شامل نہ کرو۔
+5. جب بھی ممکن ہو، تکنیکی انگریزی الفاظ کا اردو ترجمہ **"🔤 اہم تکنیکی الفاظ (Glossary)"** کی ہیڈنگ کے ساتھ لازمی بنائیں۔
 """
 
 # --- مین انٹرفیس ---
@@ -291,12 +326,13 @@ st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
 st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
 
 # --- AI کال کرنے کا فنکشن ---
-def fetch_ai_response(prompt_text, img_data=None):
+def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! Streamlit Secrets میں API Key شامل کریں۔")
         return None
     
     client = Groq(api_key=MY_GROQ_KEY)
+    active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
     text_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
     
     try:
@@ -306,7 +342,7 @@ def fetch_ai_response(prompt_text, img_data=None):
                 try:
                     base64_img = encode_image(img_data)
                     messages = [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": active_sys_prompt},
                         {
                             "role": "user",
                             "content": [
@@ -335,7 +371,7 @@ def fetch_ai_response(prompt_text, img_data=None):
                     res = client.chat.completions.create(
                         model=model_name,
                         messages=[
-                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "system", "content": active_sys_prompt},
                             {"role": "user", "content": prompt_text}
                         ],
                         temperature=0.1
@@ -350,6 +386,62 @@ def fetch_ai_response(prompt_text, img_data=None):
     except Exception as e:
         st.error(f"API کی کا مسئلہ ہے: {str(e)}")
         return None
+
+# --- ڈائنامک کوئز جنریٹر فنکشن ---
+def generate_dynamic_quiz_data(topic_content):
+    quiz_sys_prompt = """You are an exam generator. Return strictly valid JSON array of 3 MCQs based on the topic.
+Format:
+[
+  {
+    "question": "اردو میں سوال",
+    "options": ["آپشن ۱", "آپشن ۲", "آپشن ۳", "آپشن ۴"],
+    "correct_index": 0,
+    "explanation": "اردو میں درست جواب کی مختصر وضاحت"
+  }
+]
+Do not include markdown blocks or any other commentary, only the raw JSON array."""
+    
+    quiz_prompt = f" Generate 3 MCQs in Urdu based on this content:\n\n{topic_content}"
+    res = fetch_ai_response(quiz_prompt, custom_sys_prompt=quiz_sys_prompt)
+    if res:
+        try:
+            cleaned_json = res.strip()
+            if "```json" in cleaned_json:
+                cleaned_json = cleaned_json.split("```json")[1].split("```")[0].strip()
+            elif "```" in cleaned_json:
+                cleaned_json = cleaned_json.split("```")[1].split("```")[0].strip()
+            data = json.loads(cleaned_json)
+            return data
+        except Exception:
+            return []
+    return []
+
+# --- فلیش کارڈز جنریٹر فنکشن ---
+def generate_flashcards_data(topic_content):
+    fc_sys_prompt = """You are a revision card builder. Return strictly valid JSON array of 4 key revision flashcards in Urdu.
+Format:
+[
+  {
+    "term": "اصطلاح یا بنیادی تصور",
+    "definition": "ایک یا دو سطروں میں انتہائی اہم تعریف یا خلاصہ"
+  }
+]
+Only return raw JSON array."""
+    
+    fc_prompt = f"Generate 4 revision flashcards in Urdu for this topic:\n\n{topic_content}"
+    res = fetch_ai_response(fc_prompt, custom_sys_prompt=fc_sys_prompt)
+    if res:
+        try:
+            cleaned_json = res.strip()
+            if "```json" in cleaned_json:
+                cleaned_json = cleaned_json.split("```json")[1].split("```")[0].strip()
+            elif "```" in cleaned_json:
+                cleaned_json = cleaned_json.split("```")[1].split("```")[0].strip()
+            data = json.loads(cleaned_json)
+            return data
+        except Exception:
+            return []
+    return []
 
 # --- 📁 فائل، تصویر اور وائس ان پٹ ---
 st.subheader("📄 فائل، تصویر یا وائس ان پٹ (اختیاری):")
@@ -375,11 +467,9 @@ with tab_file:
             if file_extracted_text:
                 st.success(f"فائل '{uploaded_file.name}' کامیابی سے پڑھ لی گئی ہے!")
 
-
 with tab_voice:
     st.write("🎙️ ریکارڈنگ شروع کرنے کے لیے **Start Recording** اور ختم کرنے کے لیے **Stop** پر کلک کریں:")
     
-    # واضح Start اور Stop بٹن والا ریکارڈر
     audio_data = mic_recorder(
         start_prompt="🔴 Start Recording",
         stop_prompt="⏹️ Stop Recording",
@@ -403,10 +493,11 @@ with tab_voice:
                     if ans:
                         st.session_state.last_answer = ans
                         st.session_state.total_questions += 1
+                        st.session_state.dynamic_quizzes = []
+                        st.session_state.flashcards_data = []
                         st.rerun()
             else:
                 st.error("آواز واضح نہیں تھی یا پروسیسنگ میں مسئلہ آیا۔ دوبارہ کوشش کریں۔")
-                
                 
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
@@ -425,15 +516,28 @@ if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width
         st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر/آواز اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI جواب تیار کر رہا ہے...'):
-            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{clean_input_text}"
+            math_visual_instruction = ""
+            if image_bytes is not None:
+                math_visual_instruction = "\nنوٹ: اگر تصویر میں ریاضی یا سائنس کا کوئی نیومیریکل/مساوات ہے، تو اسے Step 1 (فارمولا)، Step 2 (ویلیوز کا اندراج)، اور Step 3 (حتمی جواب بمعہ یونٹ) کے ساتھ واضح باکسز اور LaTeX میں حل کریں۔"
+            
+            main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل سوال/ٹاپک کا سلیس اردو میں تفصیلی اور جامع جواب دیں:{math_visual_instruction}\n\n{clean_input_text}"
             ans = fetch_ai_response(main_prompt, image_bytes)
             if ans:
                 st.session_state.last_answer = ans
                 st.session_state.total_questions += 1
+                st.session_state.dynamic_quizzes = []
+                st.session_state.flashcards_data = []
 
 # --- 📋 جواب اور ایجوکیشنل AI ٹولز کا ڈسپلے ---
 if st.session_state.last_answer:
     st.divider()
+    
+    # 🔊 آٹو سنک اردو آڈیو ویجیٹ
+    st.markdown("##### 🔊 فوری آڈیو سنیں (Audio Response):")
+    audio_fp_auto = generate_urdu_audio(st.session_state.last_answer[:600])
+    if audio_fp_auto:
+        st.audio(audio_fp_auto, format='audio/mp3')
+    
     st.subheader("📋 EduGuide AI کا تعلیمی جواب:")
     st.markdown(st.session_state.last_answer)
     
@@ -461,7 +565,7 @@ if st.session_state.last_answer:
         
         with row2_col1:
             if st.button("🧪 4. Step-by-Step فارمولا حل", use_container_width=True):
-                tool_prompt = f"برائے مہربانی اس جواب میں موجود تمام فارمولوں یا ریاضی/فزکس کے مسائل کو Step-by-Step اور وضاحت کے ساتھ حل کریں:\n\n{st.session_state.last_answer}"
+                tool_prompt = f"برائے مہربانی اس جواب میں موجود تمام فارمولوں یا ریاضی/فزکس کے مسائل کو Step 1 (دی گئی معلومات و فارمولا)، Step 2 (حل و مساوات)، اور Step 3 (حتمی جواب) کے طور پر واضح اور تفصیلی حل کریں:\n\n{st.session_state.last_answer}"
         
         with row2_col2:
             if st.button("💡 5. سوچنے کے لیے اشارہ (Hint) دیں", use_container_width=True):
@@ -486,22 +590,58 @@ if st.session_state.last_answer:
                     st.session_state.last_answer = processed_ans
                     st.rerun()
 
-    # --- 🎮 انٹرایکٹو گیم کوئز ویجیٹ ---
-    st.divider()
-    st.subheader("🎮 لائیو انٹرایکٹو کوئز پریکٹس:")
-    quiz_opt = st.radio("پریکٹس سوال: آپریٹنگ سسٹم کا بنیادی کام کیا ہے؟", [
-        "1) صرف گیمز چلانا",
-        "2) ہارڈ ویئر اور سافٹ ویئر کے درمیان رابطہ قائم کرنا",
-        "3) ویڈیو ایڈٹ کرنا",
-        "4) پرنٹر میں روشنائی بھرنا"
-    ])
-    if st.button("کوئز جواب جمع کروائیں"):
-        st.session_state.quiz_total += 1
-        if "2)" in quiz_opt:
-            st.success("🎉 بالکل درست جواب! آپ کو +1 پوائنٹ مل گیا۔")
-            st.session_state.quiz_score += 1
-        else:
-            st.error("❌ غلط جواب! صحیح جواب 'ہارڈ ویئر اور سافٹ ویئر کے درمیان رابطہ قائم کرنا' ہے۔")
+        # --- 🎴 فیچر: کسٹم اسمارٹ فلیش کارڈز اور مائنڈ ریویژن ---
+        st.divider()
+        st.subheader("🎴 کسٹم اسمارٹ فلیش کارڈز (Quick Revision Cards)")
+        if st.button("⚡ اس ٹاپک کے ریویژن فلیش کارڈز تیار کریں", use_container_width=True):
+            with st.spinner("EduGuide AI فلیش کارڈز تیار کر رہا ہے..."):
+                fcs = generate_flashcards_data(st.session_state.last_answer)
+                if fcs:
+                    st.session_state.flashcards_data = fcs
+
+        if st.session_state.flashcards_data:
+            fc_cols = st.columns(len(st.session_state.flashcards_data))
+            for idx, card in enumerate(st.session_state.flashcards_data):
+                with fc_cols[idx]:
+                    st.markdown(f"""
+                    <div class="flashcard-box">
+                        <div class="flashcard-title">📌 {card.get('term', f'کارڈ {idx+1}')}</div>
+                        <p style="font-size: 14px; color: #333;">{card.get('definition', '')}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+        # --- 🎮 فیچر: ڈائنامک AI کوئز انجن (Dynamic Real-Time Quiz) ---
+        st.divider()
+        st.subheader("🎯 ڈائنامک AI کوئز انجن (رئیل ٹائم اسسمنٹ)")
+        if st.button("🔄 موجودہ ٹاپک سے لائیو ٹیسٹ بنائیں (Generate Dynamic Quiz)", use_container_width=True):
+            with st.spinner("AI اسی ٹاپک کے 3 فریش سوالات تیار کر رہا ہے..."):
+                quiz_data = generate_dynamic_quiz_data(st.session_state.last_answer)
+                if quiz_data:
+                    st.session_state.dynamic_quizzes = quiz_data
+                else:
+                    st.error("کوئز تیار نہیں ہو سکا۔ دوبارہ کلک کریں۔")
+
+        if st.session_state.dynamic_quizzes:
+            st.markdown("##### 📝 سوالات حل کریں اور فوری رزلٹ دیکھیں:")
+            for q_idx, q in enumerate(st.session_state.dynamic_quizzes):
+                st.markdown(f"**سوال {q_idx + 1}: {q.get('question')}**")
+                options = q.get('options', [])
+                user_choice = st.radio(
+                    f"آپشن منتخب کریں (سوال {q_idx+1}):", 
+                    options, 
+                    key=f"dyn_q_{q_idx}", 
+                    label_visibility="collapsed"
+                )
+                
+                if st.button(f"سوال {q_idx + 1} کا جواب چیک کریں", key=f"dyn_btn_{q_idx}"):
+                    correct_idx = q.get('correct_index', 0)
+                    st.session_state.quiz_total += 1
+                    if options.index(user_choice) == correct_idx:
+                        st.success(f"🎉 بالکل درست! {q.get('explanation', '')}")
+                        st.session_state.quiz_score += 1
+                    else:
+                        st.error(f"❌ غلط جواب! صحیح آپشن تھا: '{options[correct_idx]}' | وضاحت: {q.get('explanation', '')}")
+                st.write("---")
 
     # --- 🚀 اضافی ٹولز (Audio, Download, Copy, PDF Export) ---
     st.divider()
@@ -510,7 +650,7 @@ if st.session_state.last_answer:
     feat_col1, feat_col2, feat_col3 = st.columns(3)
     
     with feat_col1:
-        st.markdown("##### 🔊 جواب آڈیو میں سنیں:")
+        st.markdown("##### 🔊 مکمل آڈیو سنیں:")
         audio_fp = generate_urdu_audio(st.session_state.last_answer)
         if audio_fp:
             st.audio(audio_fp, format='audio/mp3')
