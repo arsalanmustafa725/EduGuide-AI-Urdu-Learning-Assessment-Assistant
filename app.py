@@ -497,25 +497,27 @@ with tab_file:
                 st.success(f"File '{uploaded_file.name}' read successfully!" if active_lang == "English" else f"فائل '{uploaded_file.name}' کامیابی سے پڑھ لی گئی ہے!")
 
 with tab_voice:
-    st.write("🎙️ Click **Start Recording** to speak your query:" if active_lang == "English" else "🎙️ ریکارڈنگ شروع کرنے کے لیے **Start Recording** اور ختم کرنے کے لیے **Stop** پر کلک کریں:")
+    st.markdown('<div dir="ltr" style="text-align: left;">', unsafe_allow_html=True)
+    st.write("🎙️ Click **Start Recording** to speak your query:" if active_lang == "English" else "🎙️ ریکارڈنگ شروع کرنے کے لیے **Start Recording** پر کلک کریں:")
     audio_data = mic_recorder(
         start_prompt="🔴 Start Recording",
         stop_prompt="⏹️ Stop Recording",
         key='custom_mic_recorder'
     )
-
+    st.markdown('</div>', unsafe_allow_html=True)
+    
     if audio_data is not None:
         audio_bytes = audio_data['bytes']
         st.audio(audio_bytes, format='audio/wav')
         
-        with st.spinner("Processing voice input..." if active_lang == "English" else "آواز کو ٹیکسٹ میں بدلا جا رہا ہے..."):
-            lang_code_whisper = "ur" if active_lang == "Urdu" else "en"
-            recognized_text = transcribe_audio(audio_bytes, lang_code_whisper)
-            
-            if recognized_text:
-                st.session_state.voice_text = recognized_text
-                st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
-                st.rerun()
+        # اسپنر کو یہاں سے ہٹا دیا گیا ہے تاکہ وہ ٹیکسٹ یا اسکرین پر گھومتا نہ رہے
+        lang_code_whisper = "ur" if active_lang == "Urdu" else "en"
+        recognized_text = transcribe_audio(audio_bytes, lang_code_whisper)
+        
+        if recognized_text:
+            st.session_state.voice_text = recognized_text
+            st.success(f"🗣️ Recognized: **\"{recognized_text}\"**" if active_lang == "English" else f"🗣️ پہچان لیا گیا: **\"{recognized_text}\"**")
+            st.rerun()
 
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
