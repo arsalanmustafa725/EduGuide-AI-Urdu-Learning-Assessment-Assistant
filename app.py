@@ -176,20 +176,37 @@ def create_pdf_report(text, language="English"):
             except Exception:
                 pass
 
+        def footer(self):
+            try:
+                self.set_y(-15)
+                self.set_font("Arial", "I", 8)
+                self.cell(0, 10, f"Page {self.page_no()}", 0, 0, "C")
+            except Exception:
+                pass
+
     pdf = PDF()
     pdf.add_page()
     pdf.set_font("Arial", size=10)
-    clean_text = re.sub(r'[*#\_`~$]', '', text)
+    
+    if not text:
+        text = "No content available."
 
-    for line in clean_text.split('\n'):
+    # مارک ڈاؤن کی علامات کو صاف کریں تاکہ کوئی لائن یا سب پوائنٹ مس نہ ہو
+    cleaned_text = text.replace('**', '').replace('__', '')
+    
+    for line in cleaned_text.split('\n'):
+        # ٹیبل کی لائنوں (|) کو عام ٹیکسٹ میں خوبصورتی سے تبدیل کریں تاکہ وہ بھی پرنٹ ہوں
+        if '|' in line:
+            line = line.replace('|', '  |  ')
+            
         if line.strip():
             try:
                 safe_line = line.encode('latin-1', 'replace').decode('latin-1')
-                pdf.multi_cell(0, 8, txt=safe_line)
+                pdf.multi_cell(0, 6, txt=safe_line)
             except Exception:
                 pass
         else:
-            pdf.ln(4)
+            pdf.ln(3)
             
     output = io.BytesIO(pdf.output(dest='S'))
     output.seek(0)
