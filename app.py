@@ -191,64 +191,27 @@ def generate_audio(text, lang_code):
     except Exception:
         return None
 
-
-# --- فائنل اور 100% ورکنگ یونیکوڈ پی ڈی ایف جنریشن فنکشن ---
-def create_pdf_report(text, language="Urdu"):
+# --- پی ڈی ایف جنریشن فنکشن (صرف انگلش کے لیے بہترین) ---
+def create_pdf_report(text, language="English"):
     class PDF(FPDF):
         def header(self):
             try:
                 self.set_font("Arial", "B", 10)
-                header_title = "EduGuide AI - Learning Report" if language == "English" else "EduGuide AI - تعلیمی رپورٹ"
-                self.cell(0, 10, header_title, 0, 1, "C")
+                self.cell(0, 10, "EduGuide AI - Learning Report", 0, 1, "C")
                 self.ln(2)
             except Exception:
                 pass
 
     pdf = PDF()
     pdf.add_page()
-    
-    font_loaded = False
-    font_filename = "DejaVuSans.ttf"
-    
-    # اگر فونٹ موجود نہ ہو تو خود بخود ڈاؤن لوڈ کر لے گا
-    if not os.path.exists(font_filename):
-        try:
-            font_url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf"
-            urllib.request.urlretrieve(font_url, font_filename)
-        except Exception:
-            pass
-
-    if os.path.exists(font_filename):
-        try:
-            pdf.add_font("CustomUnicodeFont", "", font_filename, uni=True)
-            pdf.set_font("CustomUnicodeFont", size=10)
-            font_loaded = True
-        except Exception:
-            pass
-
-    if not font_loaded:
-        pdf.set_font("Arial", size=10)
-
+    pdf.set_font("Arial", size=10)
     clean_text = re.sub(r'[*#\_`~$]', '', text)
 
-    # اردو کے لیے ری شیپ اور بیدی (Bidi) کرنا تاکہ الفاظ جڑے ہوئے آئیں
-    if language == "Urdu":
-        try:
-            reshaped_text = arabic_reshaper.reshape(clean_text)
-            final_text = get_display(reshaped_text)
-        except Exception:
-            final_text = clean_text
-    else:
-        final_text = clean_text
-
-    for line in final_text.split('\n'):
+    for line in clean_text.split('\n'):
         if line.strip():
             try:
-                if font_loaded:
-                    pdf.multi_cell(0, 8, txt=line)
-                else:
-                    safe_line = line.encode('latin-1', 'replace').decode('latin-1')
-                    pdf.multi_cell(0, 8, txt=safe_line)
+                safe_line = line.encode('latin-1', 'replace').decode('latin-1')
+                pdf.multi_cell(0, 8, txt=safe_line)
             except Exception:
                 pass
         else:
@@ -750,39 +713,48 @@ if st.session_state.last_answer:
                 
                 st.write("---")
 
-    # --- 🚀 ڈاؤن لوڈ اور ایکسپورٹ ٹولز ---
+    # --- 🛠️ اسمارٹ اور کمپیکٹ ایکسپورٹ ٹولز (ایک ہی جگہ پر تمام آپشنز) ---
     st.divider()
-    st.subheader("🛠️ Export Tools:" if active_lang == "English" else "🛠️ اضافی ٹولز (Extra Features):")
-    
-    feat_col1, feat_col2, feat_col3 = st.columns(3)
-    
-    with feat_col1:
-        st.markdown("##### 🔊 Full Audio:" if active_lang == "English" else "##### 🔊 مکمل آڈیو سنیں:")
+    st.subheader("🛠️ Export & Download Options:" if st.session_state.language == "English" else "🛠️ رپورٹ ایکسپورٹ اور ڈاؤن لوڈ:")
+
+    # زبان کے لحاظ سے دستیاب فارمیٹ کی لسٹ تیار کرنا
+    if st.session_state.language == "English":
+        export_options = ["PDF Report (.pdf)", "Text File (.txt)"]
+    else:
+        export_options = ["Text File (.txt) - Recommended for Urdu"]
+
+    selected_format = st.selectbox(
+        "Select download format:" if st.session_state.language == "English" else "ڈاؤن لوڈ کا فارمیٹ منتخب کریں:",
+        export_options
+    )
+
+    col_d1, col_d2 = st.columns([2, 1])
+
+    with col_d1:
+        # آڈیو آؤٹ پٹ کے لیے چھوٹا پلیئر
+        tts_lang_code = "ur" if st.session_state.language == "Urdu" else "en"
         audio_fp = generate_audio(st.session_state.last_answer, tts_lang_code)
         if audio_fp:
             st.audio(audio_fp, format='audio/mp3')
-    
-    with feat_col2:
-        st.markdown("##### 📥 Text Download:" if active_lang == "English" else "##### 📥 ٹیکسٹ ڈاؤن لوڈ:")
-        st.download_button(
-            label="📄 Download Response (.txt)" if active_lang == "English" else "📄 جواب (.txt) ڈاؤن لوڈ کریں",
-            data=st.session_state.last_answer,
-            file_name="EduGuide_AI_Response.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-    
-    with feat_col3:
-        st.markdown("##### 📄 PDF Report:" if active_lang == "English" else "##### 📄 PDF پورٹل ایکسپورٹ:")
-        # --- یہاں لینگویج پاس کی گئی ہے تاکہ پی ڈی ایف اسی زبان میں بنے[cite: 5] ---
-        pdf_file = create_pdf_report(st.session_state.last_answer, language=st.session_state.language)
-        st.download_button(
-            label="📕 Download PDF Report" if active_lang == "English" else "📕 PDF رپورٹ ڈاؤن لوڈ کریں",
-            data=pdf_file,
-            file_name="EduGuide_AI_Report.pdf",
-            mime="application/pdf",
-            use_container_width=True
-        )
+
+    with col_d2:
+        if "PDF" in selected_format:
+            pdf_file = create_pdf_report(st.session_state.last_answer, language="English")
+            st.download_button(
+                label="📥 Download PDF",
+                data=pdf_file,
+                file_name="EduGuide_AI_Report.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+        else:
+            st.download_button(
+                label="📥 Download .txt",
+                data=st.session_state.last_answer,
+                file_name="EduGuide_AI_Report.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
 
 # --- فوٹر ---
 st.divider()
