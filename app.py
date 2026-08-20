@@ -171,7 +171,7 @@ def create_pdf_report(text, language="English"):
         def header(self):
             try:
                 self.set_font("Arial", "B", 10)
-                self.cell(0, 10, "EduGuide AI - Learning Report", 0, 1, "C")
+                self.cell(0, 10, "EduGuide AI - Complete Learning Report", 0, 1, "C")
                 self.ln(2)
             except Exception:
                 pass
@@ -191,22 +191,20 @@ def create_pdf_report(text, language="English"):
     if not text:
         text = "No content available."
 
-    # مارک ڈاؤن کی علامات کو صاف کریں تاکہ کوئی لائن یا سب پوائنٹ مس نہ ہو
-    cleaned_text = text.replace('**', '').replace('__', '')
+    # مارک ڈاؤن کے نشانات کو صاف کریں تاکہ PDF میں پرنٹنگ کا کوئی مسئلہ نہ آئے
+    cleaned_text = text.replace('**', '').replace('__', '').replace('###', '').replace('##', '').replace('#', '')
     
+    # ہر ایک لائن کو محفوظ طریقے سے پی ڈی ایف میں شامل کریں تاکہ کوئی بھی حصہ مس نہ ہو
     for line in cleaned_text.split('\n'):
-        # ٹیبل کی لائنوں (|) کو عام ٹیکسٹ میں خوبصورتی سے تبدیل کریں تاکہ وہ بھی پرنٹ ہوں
-        if '|' in line:
-            line = line.replace('|', '  |  ')
-            
         if line.strip():
             try:
+                # تمام انگلش یا عام حروف کو درست انکوڈنگ کے ساتھ پاس کریں
                 safe_line = line.encode('latin-1', 'replace').decode('latin-1')
                 pdf.multi_cell(0, 6, txt=safe_line)
             except Exception:
                 pass
         else:
-            pdf.ln(3)
+            pdf.ln(3)  # خالی لائن کے لیے تھوڑا سا فاصلہ
             
     output = io.BytesIO(pdf.output(dest='S'))
     output.seek(0)
