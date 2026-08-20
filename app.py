@@ -31,13 +31,19 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس ---
+# --- 🎨 CSS اور اردو فونٹس (بشمول RTL سپورٹ) ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
 h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Segoe UI', sans-serif !important;
+}
+
+/* اردو متن کے لیے دائیں طرف الائنمنٹ (RTL) */
+.urdu-rtl-text {
+    direction: rtl;
+    text-align: right;
 }
 
 .stButton > button {
@@ -564,7 +570,9 @@ if st.session_state.last_answer:
         st.audio(audio_fp_auto, format='audio/mp3')
     
     st.subheader("📋 EduGuide AI کا تعلیمی جواب:")
-    st.markdown(st.session_state.last_answer)
+    
+    # RTL کلاس کے ساتھ اردو جواب کا ڈسپلے
+    st.markdown(f'<div class="urdu-rtl-text">{st.session_state.last_answer}</div>', unsafe_allow_html=True)
     
     if "مضمون میں عدم مطابقت" not in st.session_state.last_answer:
         st.divider()
@@ -599,7 +607,7 @@ if st.session_state.last_answer:
         with row2_col3:
             if st.button("🔤 6. اہم تکنیکی الفاظ کی لغت", use_container_width=True):
                 tool_prompt = f"برائے مہربانی اس جواب میں آنے والی تمام مشکل انگریزی و سائنس کی اصطلاحات کی ایک علیحدہ اردو لغت (Glossary) بمعہ تشریح بنائیں:\n\n{st.session_state.last_answer}"
-        
+
         with row3_col1:
             if st.button("📜 7. پاسٹ پیپرز اینالیٹکس (Past Papers Focus)", use_container_width=True):
                 tool_prompt = f"برائے مہربانی {selected_board} کے گزشتہ 5 سالہ پاسٹ پیپرز کے رجحانات کا تجزیہ کریں اور بتائیں کہ اس ٹاپک سے کون سے سوالات بار بار آئے ہیں:\n\n{st.session_state.last_answer}"
@@ -629,7 +637,7 @@ if st.session_state.last_answer:
             for idx, card in enumerate(st.session_state.flashcards_data):
                 with fc_cols[idx]:
                     st.markdown(f"""
-                    <div class="flashcard-box">
+                    <div class="flashcard-box urdu-rtl-text">
                         <div class="flashcard-title">📌 {card.get('term', f'کارڈ {idx+1}')}</div>
                         <p style="font-size: 14px; color: #333;">{card.get('definition', '')}</p>
                     </div>
@@ -663,7 +671,7 @@ if st.session_state.last_answer:
                     }
                 
                 q_state = st.session_state.quiz_state[q_key]
-                st.markdown(f"**سوال {q_idx + 1}: {q.get('question')}**")
+                st.markdown(f'<div class="urdu-rtl-text"><strong>سوال {q_idx + 1}: {q.get("question")}</strong></div>', unsafe_allow_html=True)
                 
                 user_choice = st.radio(
                     f"آپشن منتخب کریں (سوال {q_idx+1}):", 
