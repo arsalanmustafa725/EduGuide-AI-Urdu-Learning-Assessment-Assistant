@@ -376,9 +376,11 @@ with tab_file:
 
 with tab_voice:
     audio_val = st.audio_input("مائیک پر کلک کر کے اپنا سوال اردو میں بولیں:")
-    if audio_val is not None:
-        st.info("🎤 آپ کی آواز ریکارڈ ہو چکی ہے! جواب حاصل کرنے کے لیے نیچے دیے گئے بٹن پر کلک کریں۔")
-        if st.button("🎙️ صوتی سوال پروسیس کریں اور جواب حاصل کریں", type="primary", key="voice_process_btn", use_container_width=True):
+    st.write("👇 آواز ریکارڈ کرنے کے بعد نیچے والا بٹن دبائیں:")
+    
+    # 🔴 بٹن کو ہم نے مستقل (Always Visible) کر دیا ہے تاکہ غائب نہ ہو
+    if st.button("🎙️ صوتی سوال پروسیس کریں اور جواب حاصل کریں", type="primary", key="voice_process_btn", use_container_width=True):
+        if audio_val is not None:
             with st.spinner("EduGuide AI آپ کی آواز سن کر متن میں بدل رہا ہے..."):
                 recognized_text = transcribe_urdu_audio(audio_val.read())
                 if recognized_text:
@@ -392,6 +394,8 @@ with tab_voice:
                             st.session_state.last_answer = ans
                             st.session_state.total_questions += 1
                             st.rerun()
+        else:
+            st.warning("⚠️ ارسلان بھائی، آپ نے ابھی تک مائیک پر کلک کر کے آواز ریکارڈ نہیں کی! پہلے آواز ریکارڈ کریں۔")
 
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
