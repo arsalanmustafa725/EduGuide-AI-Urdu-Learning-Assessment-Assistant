@@ -354,9 +354,12 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     last_error_msg = None
     
     try:
-        # اگر تصویر ہو تو وژن ماڈل
+     # اگر تصویر ہو تو وژن ماڈل
         if img_data and not low_bandwidth:
-            vision_models = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
+            vision_models = [
+                "llama-3.2-11b-vision-preview",
+                "llama-3.2-90b-text-preview"
+            ]
             for v_model in vision_models:
                 try:
                     base64_img = encode_image(img_data)
@@ -385,7 +388,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
                     time.sleep(1)
                     continue
             st.error(f"تصویر پروسیسنگ میں مسئلہ آیا یا ماڈل لمٹ ختم ہے۔ تفصیل: {last_error_msg}")
-            return None 
+            return None
         
         # اگر ٹیکسٹ سوال ہو تو فال بیک چین
         for model_name in text_models:
