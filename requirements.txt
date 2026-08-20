@@ -3,7 +3,6 @@ groq
 gTTS
 PyPDF2
 Pillow
-reportlab
 streamlit-mic-recorder
 arabic-reshaper
 python-bidi
