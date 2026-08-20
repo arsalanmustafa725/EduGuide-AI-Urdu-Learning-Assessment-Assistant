@@ -62,7 +62,7 @@ st.markdown(f"""
 
 h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {{
     font-family: {'\'Noto Nastaliq Urdu\', \'Jameel Noori Nastaliq\', sans-serif' if current_lang == 'Urdu' else '\'Segoe UI\', sans-serif'} !important;
-}
+
 
 /* ڈائنامک الائنمنٹ (اردو کے لیے RTL اور انگلش کے لیے LTR) */
 .dynamic-text-box {{
