@@ -11,7 +11,7 @@ from PIL import Image
 import base64
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle 
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from streamlit_mic_recorder import mic_recorder
 
 # --- 1. اسٹریم لٹ پیج سیٹ اپ ---
@@ -29,12 +29,11 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-# --- 🎨 CSS اور اردو فونٹس (Custom File Uploader UI & Flashcards) ---
+# --- 🎨 CSS اور اردو فونٹس ---
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 
-/* اردو فونٹس صرف ہیڈنگز اور متن پر اپلائی کریں */
 h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Segoe UI', sans-serif !important;
 }
@@ -45,12 +44,10 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     font-weight: bold;
 }
 
-/* 🛠️ File Uploader Label ہٹانے کا کوڈ */
 [data-testid="stFileUploader"] label {
     display: none !important;
 }
 
-/* 📂 کارڈ نما اپ لوڈ باکس (Drag & Drop Zone) */
 [data-testid="stFileUploader"] section {
     background-color: #ffffff !important;
     border: 2px dashed #198754 !important;
@@ -65,13 +62,11 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     transition: all 0.3s ease !important;
 }
 
-/* ہوور اثر (Hover Effect) */
 [data-testid="stFileUploader"] section:hover {
     border-color: #0d6efd !important;
     background-color: #f8f9fa !important;
 }
 
-/* 🔘 اپ لوڈ بٹن کی خوبصورت ڈیزائننگ */
 [data-testid="stFileUploader"] button {
     background-color: #198754 !important;
     color: white !important;
@@ -89,12 +84,10 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
     color: white !important;
 }
 
-/* اضافی ڈوپلیکیٹ پیراگراف ٹیکسٹ ہٹانے کا سیٹ اپ */
 [data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"] p {
     display: none !important;
 }
 
-/* 🎴 فلیش کارڈز اسٹائلنگ */
 .flashcard-box {
     background: linear-gradient(135deg, #ffffff, #f0fdf4);
     border: 1.5px solid #198754;
@@ -114,7 +107,7 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. گروک اے پی آئی کی حاصل کرنا ---
+# --- 3. Groq API Key حاصل کرنا ---
 MY_GROQ_KEY = None
 try:
     if "GROQ_API_KEY" in st.secrets:
@@ -175,7 +168,7 @@ def generate_urdu_audio(text):
         tts.write_to_fp(fp)
         fp.seek(0)
         return fp
-    except Exception as e:
+    except Exception:
         return None
 
 def create_pdf_report(text):
@@ -194,7 +187,6 @@ def create_pdf_report(text):
     return buffer
 
 def transcribe_urdu_audio(audio_bytes):
-    """Groq Whisper API کے ذریعے اردو آواز کو متن میں بدلنے کا فنکشن"""
     try:
         client = Groq(api_key=MY_GROQ_KEY)
         audio_file = io.BytesIO(audio_bytes)
@@ -210,7 +202,7 @@ def transcribe_urdu_audio(audio_bytes):
         st.error(f"آواز پروسیسنگ میں مسئلہ آیا: {str(e)}")
         return None
 
-# --- سائڈ بار (Sidebar) ---
+# --- سائڈ بار ---
 with st.sidebar:
     st.title("🚀 EduGuide AI Urdu")
     st.caption("Urdu Learning & Assessment Assistant")
@@ -326,7 +318,6 @@ st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
 st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
 
 # --- AI کال کرنے کا فنکشن ---
-
 def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
         st.error("Groq API Key غائب ہے! براہ کرم اپنی درست API Key درج کریں۔")
@@ -335,7 +326,6 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
     
-    # چار مختلف ماڈلز کا فال بیک چین
     text_models = [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
@@ -375,7 +365,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
             st.error("تصویر پروسیسنگ کے ماڈل کی روزانہ کی لمٹ ختم ہے۔ براہ کرم سوال ٹیکسٹ میں درج کریں۔")
             return None
         
-        # اگر ٹیکسٹ سوال ہو تو تمام دستیاب ماڈلز کو باری باری ٹرائی کریں
+        # اگر ٹیکسٹ سوال ہو تو فال بیک چین
         for model_name in text_models:
             try:
                 res = client.chat.completions.create(
@@ -391,33 +381,11 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
             except Exception:
                 continue
                 
-        st.error("Groq کے تمام ماڈلز کی عارضی ریٹ لمٹ ختم ہو چکی ہے۔ برائے مہربانی 10 منٹ بعد دوبارہ ٹرائی کریں یا نئی API Key استعمال کریں۔")
+        st.error("تمام AI ماڈلز کی روزانہ کی لمٹ ختم ہو چکی ہے۔ کچھ دیر بعد کوشش کریں۔")
         return None
             
     except Exception as e:
-        st.error(f"کنکشن کا مسئلہ: {str(e)}")
-        return None 
-        
-        else:
-            for model_name in text_models:
-                try:
-                    res = client.chat.completions.create(
-                        model=model_name,
-                        messages=[
-                            {"role": "system", "content": active_sys_prompt},
-                            {"role": "user", "content": prompt_text}
-                        ],
-                        temperature=0.1
-                    )
-                    raw_answer = res.choices[0].message.content
-                    return remove_foreign_characters(raw_answer)
-                except Exception:
-                    continue
-            st.error("تمام AI ماڈلز کی روزانہ کی لمٹ ختم ہو چکی ہے۔ کچھ دیر بعد کوشش کریں۔")
-            return None
-            
-    except Exception as e:
-        st.error(f"API کی کا مسئلہ ہے: {str(e)}")
+        st.error(f"کنکشن یا API کا مسئلہ ہے: {str(e)}")
         return None
 
 # --- ڈائنامک کوئز جنریٹر فنکشن ---
@@ -434,7 +402,7 @@ Format:
 ]
 Do not include markdown blocks or any other commentary, only the raw JSON array."""
     
-    quiz_prompt = f" Generate 3 MCQs in Urdu based on this content:\n\n{topic_content}"
+    quiz_prompt = f"Generate 3 MCQs in Urdu based on this content:\n\n{topic_content}"
     res = fetch_ai_response(quiz_prompt, custom_sys_prompt=quiz_sys_prompt)
     if res:
         try:
@@ -531,7 +499,7 @@ with tab_voice:
                         st.rerun()
             else:
                 st.error("آواز واضح نہیں تھی یا پروسیسنگ میں مسئلہ آیا۔ دوبارہ کوشش کریں۔")
-                
+
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
 user_input = st.text_area(
@@ -546,7 +514,7 @@ if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width
     clean_input_text = user_input.strip()
     
     if not clean_input_text and image_bytes is None:
-        st.warning("ارسلان بھائی، پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر/آواز اپ لوڈ کریں!")
+        st.warning("پہلے ٹیکسٹ باکس میں اپنا سوال درج کریں یا کوئی فائل/تصویر/آواز اپ لوڈ کریں!")
     else:
         with st.spinner('EduGuide AI جواب تیار کر رہا ہے...'):
             math_visual_instruction = ""
@@ -565,7 +533,6 @@ if st.button("🚀 جواب حاصل کریں (Get Answer)", use_container_width
 if st.session_state.last_answer:
     st.divider()
     
-    # 🔊 آٹو سنک اردو آڈیو ویجیٹ
     st.markdown("##### 🔊 فوری آڈیو سنیں (Audio Response):")
     audio_fp_auto = generate_urdu_audio(st.session_state.last_answer[:600])
     if audio_fp_auto:
@@ -623,7 +590,7 @@ if st.session_state.last_answer:
                     st.session_state.last_answer = processed_ans
                     st.rerun()
 
-        # --- 🎴 فیچر: کسٹم اسمارٹ فلیش کارڈز اور مائنڈ ریویژن ---
+        # --- فلیش کارڈز UI ---
         st.divider()
         st.subheader("🎴 کسٹم اسمارٹ فلیش کارڈز (Quick Revision Cards)")
         if st.button("⚡ اس ٹاپک کے ریویژن فلیش کارڈز تیار کریں", use_container_width=True):
@@ -643,7 +610,7 @@ if st.session_state.last_answer:
                     </div>
                     """, unsafe_allow_html=True)
 
-        # --- 🎮 فیچر: ڈائنامک AI کوئز انجن (Dynamic Real-Time Quiz) ---
+        # --- ڈائنامک کوئز UI ---
         st.divider()
         st.subheader("🎯 ڈائنامک AI کوئز انجن (رئیل ٹائم اسسمنٹ)")
         if st.button("🔄 موجودہ ٹاپک سے لائیو ٹیسٹ بنائیں (Generate Dynamic Quiz)", use_container_width=True):
@@ -676,7 +643,7 @@ if st.session_state.last_answer:
                         st.error(f"❌ غلط جواب! صحیح آپشن تھا: '{options[correct_idx]}' | وضاحت: {q.get('explanation', '')}")
                 st.write("---")
 
-    # --- 🚀 اضافی ٹولز (Audio, Download, Copy, PDF Export) ---
+    # --- 🚀 اضافی ٹولز ---
     st.divider()
     st.subheader("🛠️ اضافی ٹولز (Extra Features):")
     
