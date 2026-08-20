@@ -375,28 +375,32 @@ with tab_file:
                 st.success(f"فائل '{uploaded_file.name}' کامیابی سے پڑھ لی گئی ہے!")
 
 with tab_voice:
-    audio_val = st.audio_input("مائیک پر کلک کر کے اپنا سوال اردو میں بولیں:")
-    st.write("👇 آواز ریکارڈ کرنے کے بعد نیچے والا بٹن دبائیں:")
+    audio_val = st.audio_input("مائیک پر کلک کر کے بولیں، پھر Stop پر کلک کریں:")
     
-    # 🔴 بٹن کو ہم نے مستقل (Always Visible) کر دیا ہے تاکہ غائب نہ ہو
-    if st.button("🎙️ صوتی سوال پروسیس کریں اور جواب حاصل کریں", type="primary", key="voice_process_btn", use_container_width=True):
-        if audio_val is not None:
-            with st.spinner("EduGuide AI آپ کی آواز سن کر متن میں بدل رہا ہے..."):
-                recognized_text = transcribe_urdu_audio(audio_val.read())
-                if recognized_text:
-                    st.session_state.voice_text = recognized_text
-                    st.success(f"🗣️ AI نے آپ کی آواز سن لی: **\"{recognized_text}\"**")
-                    
-                    with st.spinner("جواب تیار کیا جا رہا ہے..."):
-                        main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل صوتی سوال کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{recognized_text}"
-                        ans = fetch_ai_response(main_prompt)
-                        if ans:
-                            st.session_state.last_answer = ans
-                            st.session_state.total_questions += 1
-                            st.rerun()
-        else:
-            st.warning("⚠️ ارسلان بھائی، آپ نے ابھی تک مائیک پر کلک کر کے آواز ریکارڈ نہیں کی! پہلے آواز ریکارڈ کریں۔")
-
+    # جیسے ہی آپ Stop کریں گے، یہ کوڈ خود بخود چل پڑے گا
+    if audio_val is not None:
+        st.audio(audio_val)  # آپ کی ریکارڈ شدہ آواز سنانے کے لیے
+        
+        # چیک کریں کہ آیا یہ نئی آڈیو ہے
+        audio_bytes = audio_val.read()
+        
+        with st.spinner("EduGuide AI آپ کی آواز سن رہا ہے اور ٹیکسٹ میں بدل رہا ہے..."):
+            recognized_text = transcribe_urdu_audio(audio_bytes)
+            
+            if recognized_text:
+                st.session_state.voice_text = recognized_text
+                st.success(f"🗣️ AI نے آپ کا سوال سن لیا: **\"{recognized_text}\"**")
+                
+                with st.spinner("جواب تیار کیا جا رہا ہے..."):
+                    main_prompt = f"برائے مہربانی {selected_board} کے نصاب کے مطابق درج ذیل صوتی سوال کا سلیس اردو میں تفصیلی اور جامع جواب دیں:\n\n{recognized_text}"
+                    ans = fetch_ai_response(main_prompt)
+                    if ans:
+                        st.session_state.last_answer = ans
+                        st.session_state.total_questions += 1
+                        st.rerun()
+            else:
+                st.error("آواز واضح نہیں تھی یا پروسیسنگ میں مسئلہ آیا۔ دوبارہ کوشش کریں۔") 
+                
 # --- ان پٹ باکس ---
 default_text = st.session_state.voice_text if st.session_state.voice_text else file_extracted_text
 user_input = st.text_area(
