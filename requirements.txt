@@ -1,0 +1,10 @@
+streamlit
+groq
+gTTS
+PyPDF2
+Pillow
+streamlit-mic-recorder
+arabic-reshaper
+python-bidi
+fpdf2
+google-genai
