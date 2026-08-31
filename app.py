@@ -385,11 +385,9 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
         return None
 
     # یہاں ہم نے مستحکم ماڈلز کی لسٹ کو اپ ڈیٹ کر دیا ہے تاکہ فیل نہ ہو
-    text_models = [
+   text_models = [
         "llama-3.1-8b-instant",
-        "llama-3.3-70b-versatile",
-        "llama-3.2-3b-preview",
-        "gemma2-9b-it"
+        "llama-3.3-70b-versatile"
     ]
     
     for model_name in text_models:
