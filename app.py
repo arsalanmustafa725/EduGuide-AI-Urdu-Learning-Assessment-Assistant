@@ -329,9 +329,7 @@ if socratic_mode:
     socratic_instruction = "\nSocratic Mode Active: Guide the student with hints instead of giving direct answers." if active_lang == "English" else "\nسقراطی موڈ فعال ہے: طالب علم کو براہ راست جواب دینے کے بجائے اشارے اور رہنما سوالات دیں۔"
 
 SYSTEM_PROMPT = f"""
-You are 'EduGuide AI', an educational assistant for Alkhidmat Foundation, Bano Kabil 3.0, and Alibaba Cloud AI Hackathon 2026.
-
-
+You are 'EduGuide AI', an educational assistant for Alkhidmat Foundation, Bano Kabil 3.0, and Alibaba Cloud AI Hackathon 2026[cite: 1].
 
 STRICT CONFIGURATION & ANTI-MIXING RULE:
 - Active Language Mode: {active_lang}
@@ -348,10 +346,10 @@ If the Active Language Mode is Urdu, you are strictly prohibited from outputting
 # --- مین انٹرفیس ---
 if active_lang == "Urdu":
     st.title("🚀 EduGuide AI: Urdu Learning & Assessment Assistant")
-    st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**")
+    st.markdown("##### **الخدمت فاؤنڈیشن، بنو قابل اور علی بابا کلاؤڈ ہیکاتھون 2026 کا خصوصی پروجیکٹ**[cite: 1]")
 else:
     st.title("🚀 EduGuide AI: International Learning & Assessment Assistant")
-    st.markdown("##### **Special Project for Alkhidmat Foundation, Bano Kabil & Alibaba Cloud Hackathon 2026**")
+    st.markdown("##### **Special Project for Alkhidmat Foundation, Bano Kabil & Alibaba Cloud Hackathon 2026**[cite: 1]")
 
 def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     if not MY_GROQ_KEY or MY_GROQ_KEY == "YOUR_LOCAL_GROQ_KEY_HERE":
@@ -386,11 +384,12 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
         st.error("تصویر پروسیسنگ میں مسئلہ آ رہا ہے۔ براہ کرم تصویر کا سائز کم کریں یا سوال لکھ کر پوچھیں۔" if active_lang == "Urdu" else "Vision processing failed. Please check image size or type the question.")
         return None
 
-    # یہاں ہم نے بہترین اور مستحکم ماڈلز سیٹ کر دیے ہیں
+    # یہاں ہم نے مستحکم ماڈلز کی لسٹ کو اپ ڈیٹ کر دیا ہے تاکہ فیل نہ ہو
     text_models = [
-         "llama-3.1-8b-instant",
+        "llama-3.1-8b-instant",
         "llama-3.3-70b-versatile",
-        "llama-3.3-70b-specdec"
+        "llama-3.2-3b-preview",
+        "gemma2-9b-it"
     ]
     
     for model_name in text_models:
