@@ -384,14 +384,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
         st.error("تصویر پروسیسنگ میں مسئلہ آ رہا ہے۔ براہ کرم تصویر کا سائز کم کریں یا سوال لکھ کر پوچھیں۔" if active_lang == "Urdu" else "Vision processing failed. Please check image size or type the question.")
         return None
 
-    # یہاں ہم نے مستحکم ماڈلز کی لسٹ کو اپ ڈیٹ کر دیا ہے تاکہ فیل نہ ہو
-   text_models = [
-        "llama-3.1-8b-instant",
-        "llama-3.3-70b-versatile"
-    ]
-    
-    
-   # --- مستحکم ٹیکسٹ ماڈلز کی لسٹ ---
+    # --- مستحکم ٹیکسٹ ماڈلز کی لسٹ ---
     text_models = [
         "llama-3.1-8b-instant",
         "llama-3.3-70b-versatile"
@@ -410,8 +403,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
             )
             if res and res.choices:
                 return res.choices[0].message.content.strip()
-        except Exception as e:
-            # اگر ایک ماڈل فیل ہو تو تھوڑا انتظار کر کے اگلے ماڈل پر جائیں
+        except Exception:
             time.sleep(1)
             continue
             
@@ -428,18 +420,15 @@ def generate_dynamic_quiz_data(topic_content):
     if res:
         try:
             cleaned_json = res.strip()
-            # صاف ستھرا JSON ایکسٹریکٹ کرنے کا طریقہ
             if "```json" in cleaned_json:
                 cleaned_json = cleaned_json.split("```json")[1].split("```")[0].strip()
             elif "```" in cleaned_json:
                 cleaned_json = cleaned_json.split("```")[1].split("```")[0].strip()
             
-            # JSON لسٹ یا ڈکشنری پارس کرنا
             parsed_data = json.loads(cleaned_json)
             if isinstance(parsed_data, list):
                 return parsed_data
         except Exception:
-            # اگر JSON فارمیٹ میں کوئی بھی خرابی ہو تو خالی لسٹ واپس کرے تاکہ ایپ کریش نہ ہو
             return []
     return []
 
