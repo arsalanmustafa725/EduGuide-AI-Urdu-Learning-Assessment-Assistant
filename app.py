@@ -142,16 +142,20 @@ h1, h2, h3, h4, h5, h6, p, div:not([data-testid="stFileUploader"] *) {{
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. Groq API Key ---
+# --- 4. Groq API Key (مضبوط اور محفوظ طریقہ) ---
 MY_GROQ_KEY = None
 try:
-    if "GROQ_API_KEY" in st.secrets:
+    if st.secrets and "GROQ_API_KEY" in st.secrets:
         MY_GROQ_KEY = st.secrets["GROQ_API_KEY"]
 except Exception:
     pass
 
 if not MY_GROQ_KEY:
-    MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "YOUR_LOCAL_GROQ_KEY_HERE")
+    MY_GROQ_KEY = os.getenv("GROQ_API_KEY", "")
+
+# اگر آپ چاہیں تو عارضی طور پر یہ لائن لگا کر چیک کر سکتے ہیں کہ کیی اٹھ رہی ہے یا نہیں
+# if not MY_GROQ_KEY:
+#     st.error("API Key نہیں مل رہی! براہ کرم Streamlit Secrets چیک کریں۔")
 
 # --- 🎯 مددگار فنکشنز ---
 def encode_image(image_bytes):
