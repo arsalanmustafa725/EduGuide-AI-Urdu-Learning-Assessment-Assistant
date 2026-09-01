@@ -390,6 +390,13 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
         "llama-3.3-70b-versatile"
     ]
     
+    
+   # --- مستحکم ٹیکسٹ ماڈلز کی لسٹ ---
+    text_models = [
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile"
+    ]
+    
     for model_name in text_models:
         try:
             res = client.chat.completions.create(
@@ -401,29 +408,38 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
                 temperature=0.1,
                 top_p=0.9
             )
-            return res.choices[0].message.content.strip()
-        except Exception:
+            if res and res.choices:
+                return res.choices[0].message.content.strip()
+        except Exception as e:
+            # اگر ایک ماڈل فیل ہو تو تھوڑا انتظار کر کے اگلے ماڈل پر جائیں
             time.sleep(1)
             continue
             
-    st.error("All AI requests failed. Please try again.")
+    st.error("All AI requests failed. Please check your API key or internet connection.")
     return None
 
 def generate_dynamic_quiz_data(topic_content):
     lang_json_rule = "strictly in English" if active_lang == "English" else "strictly in Urdu script"
-    quiz_sys_prompt = f"You are an exam generator. Return strictly valid JSON array of 3 MCQs {lang_json_rule}. Format: [{{\"question\": \"Text\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"correct_index\": 0, \"explanation\": \"Short explanation\"}}]."
+    quiz_sys_prompt = f"You are an exam generator. Return strictly a valid JSON array of 3 MCQs {lang_json_rule}. Format: [{{\"question\": \"Text\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"correct_index\": 0, \"explanation\": \"Short explanation\"}}]. Do not include any extra markdown text outside the JSON array."
     
     quiz_prompt = f"Generate 3 MCQs {lang_json_rule} based on this content:\n\n{topic_content}"
     res = fetch_ai_response(quiz_prompt, custom_sys_prompt=quiz_sys_prompt)
+    
     if res:
         try:
             cleaned_json = res.strip()
+            # صاف ستھرا JSON ایکسٹریکٹ کرنے کا طریقہ
             if "```json" in cleaned_json:
                 cleaned_json = cleaned_json.split("```json")[1].split("```")[0].strip()
             elif "```" in cleaned_json:
                 cleaned_json = cleaned_json.split("```")[1].split("```")[0].strip()
-            return json.loads(cleaned_json)
+            
+            # JSON لسٹ یا ڈکشنری پارس کرنا
+            parsed_data = json.loads(cleaned_json)
+            if isinstance(parsed_data, list):
+                return parsed_data
         except Exception:
+            # اگر JSON فارمیٹ میں کوئی بھی خرابی ہو تو خالی لسٹ واپس کرے تاکہ ایپ کریش نہ ہو
             return []
     return []
 
