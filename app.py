@@ -392,7 +392,8 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
     try:
         res = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",
+            model="llama-3.2-11b-vision-preview",
             messages=[
                 {"role": "system", "content": active_sys_prompt},
                 {"role": "user", "content": prompt_text}
@@ -410,7 +411,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     # --- مستحکم ٹیکسٹ ماڈلز کی لسٹ ---
     text_models = [
         "llama-3.1-8b-instant",
-        "llama-3.3-70b-versatile"
+        "llama-3.2-11b-vision-preview"
     ]
     
     for model_name in text_models:
