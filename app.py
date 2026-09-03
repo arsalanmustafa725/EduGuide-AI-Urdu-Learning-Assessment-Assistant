@@ -363,31 +363,50 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
 
+    # اگر تصویر موجود ہو اور لو بینڈوڈتھ موڈ آن نہ ہو
     if img_data and not low_bandwidth:
-        vision_models = ["llama-3.2-11b-vision-preview", "llama-3.2-90b-vision-preview"]
-        
-        for v_model in vision_models:
-            try:
-                base64_img = encode_image(img_data)
-                messages = [
-                    {"role": "system", "content": active_sys_prompt},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt_text},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
-                        ]
-                    }
-                ]
-                res = client.chat.completions.create(model=v_model, messages=messages, temperature=0.1)
+        try:
+            base64_img = encode_image(img_data)
+            messages = [
+                {"role": "system", "content": active_sys_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt_text},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
+                    ]
+                }
+            ]
+            # صرف ایک مستحکم ویژن ماڈل استعمال کریں
+            res = client.chat.completions.create(
+                model="llama-3.2-11b-vision-preview", 
+                messages=messages, 
+                temperature=0.3
+            )
+            if res and res.choices:
                 return res.choices[0].message.content.strip()
-            except Exception:
-                time.sleep(1)
-                continue
-        
-        st.error("تصویر پروسیسنگ میں مسئلہ آ رہا ہے۔ براہ کرم تصویر کا سائز کم کریں یا سوال لکھ کر پوچھیں۔" if active_lang == "Urdu" else "Vision processing failed. Please check image size or type the question.")
-        return None
+        except Exception as e:
+            st.error(f"Vision API Error: {str(e)}")
+            return None
 
+    # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
+    try:
+        res = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": active_sys_prompt},
+                {"role": "user", "content": prompt_text}
+            ],
+            temperature=0.3
+        )
+        if res and res.choices:
+            return res.choices[0].message.content.strip()
+    except Exception as e:
+        st.error(f"Groq API Error Details: {str(e)}")
+        return None
+        
+    st.error("All AI requests failed. Please check your API key or internet connection.")
+    return None
     # --- مستحکم ٹیکسٹ ماڈلز کی لسٹ ---
     text_models = [
         "llama-3.1-8b-instant",
