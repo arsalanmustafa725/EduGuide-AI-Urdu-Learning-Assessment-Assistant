@@ -392,7 +392,7 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
    # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
     try:
         res = client.chat.completions.create(
-        model="llama-3.1-8b-instant",  # 👈 یہ نام لکھیں اور آخر میں کوما چیک کریں
+        openai/gpt-oss-20b,  # 👈 یہ نام لکھیں اور آخر میں کوما چیک کریں
         messages=[
             {"role": "system", "content": active_sys_prompt},
             {"role": "user", "content": prompt_text}
