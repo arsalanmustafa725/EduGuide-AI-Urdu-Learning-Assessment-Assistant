@@ -389,16 +389,16 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
             st.error(f"Vision API Error: {str(e)}")
             return None
 
-   # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
+ # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
     try:
         res = client.chat.completions.create(
-        openai/gpt-oss-20b,  # 👈 یہ نام لکھیں اور آخر میں کوما چیک کریں
-        messages=[
-            {"role": "system", "content": active_sys_prompt},
-            {"role": "user", "content": prompt_text}
-        ],
-        temperature=0.3
-    )
+            model="openai/gpt-oss-20b",
+            messages=[
+                {"role": "system", "content": active_sys_prompt},
+                {"role": "user", "content": prompt_text}
+            ],
+            temperature=0.3
+        )
         if res and res.choices:
             return res.choices[0].message.content.strip()
     except Exception as e:
