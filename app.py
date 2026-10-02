@@ -389,11 +389,10 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
             st.error(f"Vision API Error: {str(e)}")
             return None
 
-    # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
+   # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
     try:
         res = client.chat.completions.create(
-           
-            model="llama-3.2-11b-vision-preview",  # 👈 یہ ڈبل ماڈل کی وجہ سے ایرر آ رہا ہے
+            model="llama-3.2-11b-vision-preview",
             messages=[
                 {"role": "system", "content": active_sys_prompt},
                 {"role": "user", "content": prompt_text}
