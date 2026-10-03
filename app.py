@@ -363,31 +363,34 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
 
-    # اگر تصویر موجود ہو اور لو بینڈوڈتھ موڈ آن نہ ہو
-    if img_data and not low_bandwidth:
-        try:
-            base64_img = encode_image(img_data)
-            messages = [
+   # تصویر/ویژن کے لیے OCR اور ٹیکسٹ ماڈل کا जुगाड़
+    try:
+        from PIL import Image
+        import pytesseract
+        
+        # اگر تصویر موجود ہے تو پہلے OCR سے ٹیکسٹ نکالیں
+        if img_data:
+            img = Image.open(io.BytesIO(img_data))
+            extracted_text = pytesseract.image_to_string(img)
+            prompt_text = f"{prompt_text}\n\nتصویر سے نکالا گیا متن (OCR): {extracted_text}"
+    except Exception as e:
+        pass
+
+    # اب ٹیکسٹ ماڈل کے ذریعے پروسیس کریں
+    try:
+        res = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[
                 {"role": "system", "content": active_sys_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt_text},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}}
-                    ]
-                }
-            ]
-            # صرف ایک مستحکم ویژن ماڈل استعمال کریں
-            res = client.chat.completions.create(
-                model="llama-3.2-11b-vision-preview", 
-                messages=messages, 
-                temperature=0.3
-            )
-            if res and res.choices:
-                return res.choices[0].message.content.strip()
-        except Exception as e:
-            st.error(f"Vision API Error: {str(e)}")
-            return None
+                {"role": "user", "content": prompt_text}
+            ],
+            temperature=0.3
+        )
+        if res and res.choices:
+            return res.choices[0].message.content.strip()
+    except Exception as e:
+        st.error(f"Groq API Error Details: {str(e)}")
+        return None
 
  # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
     try:
