@@ -363,17 +363,19 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     client = Groq(api_key=MY_GROQ_KEY)
     active_sys_prompt = custom_sys_prompt if custom_sys_prompt else SYSTEM_PROMPT
 
-   # تصویر/ویژن کے لیے OCR اور ٹیکسٹ ماڈل کا जुगाड़
+    # تصویر/ویژن کے لیے OCR کا محفوظ طریقہ (Exception Handling کے ساتھ)
     try:
         from PIL import Image
         import pytesseract
         
-        # اگر تصویر موجود ہے تو پہلے OCR سے ٹیکسٹ نکالیں
         if img_data:
             img = Image.open(io.BytesIO(img_data))
+            # کوشش کریں کہ اگر سرور پر tesseract موجود ہے تو ٹیکسٹ نکال لے
             extracted_text = pytesseract.image_to_string(img)
-            prompt_text = f"{prompt_text}\n\nتصویر سے نکالا گیا متن (OCR): {extracted_text}"
+            if extracted_text.strip():
+                prompt_text = f"{prompt_text}\n\nتصویر سے نکالا گیا متن (OCR): {extracted_text}"
     except Exception as e:
+        # اگر لائیو سرور پر tesseract انسٹال نہ ہو یا کوئی ایرر آئے، تو ایپ کریش نہیں ہوگی بلکہ خاموشی سے آگے بڑھ جائے گی
         pass
 
     # اب ٹیکسٹ ماڈل کے ذریعے پروسیس کریں
@@ -391,6 +393,9 @@ def fetch_ai_response(prompt_text, img_data=None, custom_sys_prompt=None):
     except Exception as e:
         st.error(f"Groq API Error Details: {str(e)}")
         return None
+        
+    st.error("All AI requests failed. Please check your API key or internet connection.")
+    return None
 
  # صرف ٹیکسٹ کے لیے سب سے بہترین اور تیز ترین ماڈل
     try:
